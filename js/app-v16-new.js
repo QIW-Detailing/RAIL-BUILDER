@@ -168,8 +168,8 @@ function parseCustomSize(sizeStr, defaultVal) {
         const val = parseFloat(str);
         return { w: val, h: val, t: 0.12 };
     }
-    const cleanStr = str.replace(/^(HSS|FB|PL|L|PIPE|TUBING|W)\s*/i, '').trim();
-    const parts = cleanStr.split(/\s*x\s*/i);
+    const cleanStr = str.replace(/^(HSS|FB|PL|L|PIPE|TUBING|W)\s*/i, '').replace(/"/g, '').trim();
+    const parts = cleanStr.split(/\s*[*xX]\s*/);
     if (parts.length >= 2) {
         const w = parseFractionOrDecimal(parts[0]);
         const h = parseFractionOrDecimal(parts[1]);
@@ -188,11 +188,38 @@ function parseCustomSize(sizeStr, defaultVal) {
                 t = parseFractionOrDecimal(tStr);
             }
         }
-        return { w, h, t };
+        return { w: w || defaultVal, h: h || defaultVal, t: t || 0.12 };
     }
     const w = parseFractionOrDecimal(cleanStr);
-    return { w, h: w, t: w };
+    return { w: w || defaultVal, h: w || defaultVal, t: w || 0.12 };
 }
+window.parseCustomSize = parseCustomSize;
+
+function resolveProfileDisplayName(type, size, customVal, numW, numH, numT) {
+    if (!size || size === 'NONE' || type === 'none') return 'None';
+    if (size !== 'CUSTOM') {
+        const shapes = (typeof SHAPES_DB !== 'undefined' && SHAPES_DB[type]) ? SHAPES_DB[type] : [];
+        const found = shapes.find(s => s.id === size);
+        return found ? found.name : size;
+    }
+    const str = (customVal !== undefined && customVal !== null) ? String(customVal).replace(/"/g, '').trim() : '';
+    if (str) {
+        if (/^(HSS|FB|PL|PIPE|L|W)\b/i.test(str)) {
+            return str.toUpperCase();
+        }
+        if (str.includes('x') || str.includes('X') || str.includes('*')) {
+            const prefix = (type === 'plate' ? 'PL ' : ((type === 'flat_bar' || type === 'fb') ? 'FB ' : (type === 'hss_circ' ? 'PIPE ' : 'HSS ')));
+            return prefix + str.replace(/\*/g, 'x').toUpperCase();
+        }
+    }
+    const prefix = (type === 'plate' ? 'PL ' : ((type === 'flat_bar' || type === 'fb') ? 'FB ' : (type === 'hss_circ' ? 'PIPE ' : 'HSS ')));
+    let desc = `${prefix}${numW || 1.5}x${numH || 1.5}`;
+    if (numT !== undefined && numT !== null && numT !== 0) {
+        desc += `x${numT}`;
+    }
+    return typeof formatToArchitecturalDesc === 'function' ? formatToArchitecturalDesc(desc) : desc;
+}
+window.resolveProfileDisplayName = resolveProfileDisplayName;
 
 function getProfileThickness(type, size, customVal) {
     if (type === 'none' || size === 'NONE') return 0;
@@ -482,6 +509,37 @@ function getResolvedPanelProperties(panel, style) {
         midRailGap = panel.midRailGap !== undefined ? panel.midRailGap : 12.0;
         picketType = 'none';
         picketW = 0; picketH = 0; picketT = 0; picketSpacing = 0;
+        includeBasePlates = panel.includeBasePlates || 'no';
+        bpW = panel.basePlateW || 6.0;
+        bpL = panel.basePlateL || 6.0;
+        bpH = getProfileDimension('plate', panel.basePlateSize, panel.basePlateT || 0.5);
+        bpHoleD = panel.basePlateHoleD || 0.5;
+        bpHoleOffsetX = panel.basePlateHoleOffsetX || 0.5;
+    } else if (style === 'classic_custom' || style === 'executive_custom') {
+        fHeight = panel.fenceHeight || 41.0;
+        pHeight = panel.postHeight || 45.75;
+        postType = panel.postType || 'hss_rect';
+        postW = getPicketDimension(panel.postType, panel.postSize, panel.postW || 1.5);
+        postH = getProfileDimension(panel.postType, panel.postSize, panel.postW || 1.5);
+        postT = getProfileThickness(panel.postType, panel.postSize, panel.postW || 0.12);
+        topRailType = panel.topRailType || 'hss_rect';
+        topRailW = getPicketDimension(panel.topRailType, panel.topRailSize, panel.topRailH || 1.5);
+        topRailH = getProfileDimension(panel.topRailType, panel.topRailSize, panel.topRailH || 1.5);
+        topRailT = getProfileThickness(panel.topRailType, panel.topRailSize, panel.topRailH || 0.12);
+        botRailType = panel.botRailType || 'hss_rect';
+        botRailW = getPicketDimension(panel.botRailType, panel.botRailSize, panel.botRailH || 1.5);
+        botRailH = getProfileDimension(panel.botRailType, panel.botRailSize, panel.botRailH || 1.5);
+        botRailT = getProfileThickness(panel.botRailType, panel.botRailSize, panel.botRailH || 0.12);
+        midRailType = (style === 'classic_custom') ? 'none' : (panel.midRailType || 'hss_rect');
+        midRailW = (style === 'classic_custom') ? 0 : getPicketDimension(midRailType, panel.midRailSize, panel.midRailH || 1.5);
+        midRailH = (style === 'classic_custom') ? 0 : getProfileDimension(midRailType, panel.midRailSize, panel.midRailH || 1.5);
+        midRailT = (style === 'classic_custom') ? 0 : getProfileThickness(midRailType, panel.midRailSize, panel.midRailH || 0.12);
+        midRailGap = panel.midRailGap !== undefined ? panel.midRailGap : 3.0;
+        picketType = panel.picketType || 'hss_rect';
+        picketW = getPicketDimension(panel.picketType, panel.picketSize, panel.picketW || 0.5);
+        picketH = getProfileDimension(panel.picketType, panel.picketSize, panel.picketW || 0.5);
+        picketT = getProfileThickness(panel.picketType, panel.picketSize, panel.picketW || 0.083);
+        picketSpacing = panel.picketSpacing || 4.0;
         includeBasePlates = panel.includeBasePlates || 'no';
         bpW = panel.basePlateW || 6.0;
         bpL = panel.basePlateL || 6.0;
@@ -826,16 +884,16 @@ function resolveFreeEndExtensions(vals, style, panelType) {
         const hasLeftFree = (leftPostOpt === 'none' || leftPostOpt === 'corner_none' || leftPostOpt === 'no');
         const hasRightFree = (rightPostOpt === 'none' || rightPostOpt === 'corner_none' || rightPostOpt === 'no');
         
-        let baseLen = vals.length || 120.0;
-        const postW = vals.postW !== undefined ? vals.postW : 1.5;
+        let baseLen = parseFloat(vals.length) || 120.0;
+        const postW = (typeof vals.postW === 'string') ? parseCustomSize(vals.postW, 1.5).w : (parseFloat(vals.postW) || 1.5);
         const midPostCount = (vals.midPosts === 'default' || vals.midPosts === 'yes') 
-            ? Math.max(0, Math.ceil((vals.originalLength || vals.length) / 48) - 1) 
+            ? Math.max(0, Math.ceil((parseFloat(vals.originalLength) || parseFloat(vals.length) || 120.0) / 48) - 1) 
             : ((vals.midPosts === 'custom' || vals.midPosts === 'custom_standard') ? (parseInt(vals.midPostCount) || 0) : 0);
             
         // Calculate mid-post centers on base length (excluding freeEnd4 extension)
         const centers = resolveMidPostCenters(baseLen, leftPostOpt, rightPostOpt, vals.midPosts || 'none', midPostCount, postW, vals.midPostSpacings || null, style, vals.extra6, panelType, 0, 0);
         
-        const pSpacing = vals.picketSpacing !== undefined ? vals.picketSpacing : 4.0;
+        const pSpacing = (typeof vals.picketSpacing === 'string') ? parseFractionOrDecimal(vals.picketSpacing) : (parseFloat(vals.picketSpacing) || 4.0);
         
         if (hasLeftFree) {
             let c2_base = baseLen;
@@ -861,21 +919,25 @@ function resolveFreeEndExtensions(vals, style, panelType) {
             deltaRight = Math.max(0, c2_prime - baseLen);
         }
     }
-    return { deltaLeft, deltaRight };
+    return { deltaLeft: isNaN(deltaLeft) ? 0 : deltaLeft, deltaRight: isNaN(deltaRight) ? 0 : deltaRight };
 }
 
 function resolveMidPostCenters(length, leftPostOpt, rightPostOpt, midPostsOpt, midPostCount, postW, customSpacings, style, extra6 = false, panelType = 'main', deltaLeft = 0, deltaRight = 0) {
     const centers = [];
     if (midPostsOpt === 'none') return centers;
 
-    let baseLength = length - (deltaLeft + deltaRight);
+    deltaLeft = parseFloat(deltaLeft) || 0;
+    deltaRight = parseFloat(deltaRight) || 0;
+    const numPostW = (typeof postW === 'string') ? parseCustomSize(postW, 1.5).w : (parseFloat(postW) || 1.5);
+
+    let baseLength = (parseFloat(length) || 120.0) - (deltaLeft + deltaRight);
     let calcLength = baseLength;
     if (extra6) {
         calcLength = baseLength - (panelType === 'main' ? 12.0 : 6.0);
     }
 
-    const startXBound = (leftPostOpt === 'yes' || leftPostOpt === 'corner') ? postW : 0;
-    const endXBound = (rightPostOpt === 'yes' || rightPostOpt === 'corner') ? (calcLength - postW) : calcLength;
+    const startXBound = (leftPostOpt === 'yes' || leftPostOpt === 'corner') ? numPostW : 0;
+    const endXBound = (rightPostOpt === 'yes' || rightPostOpt === 'corner') ? (calcLength - numPostW) : calcLength;
 
     if (midPostsOpt === 'default' || midPostsOpt === 'yes') {
         const count = Math.max(0, Math.ceil(calcLength / 48) - 1);
@@ -891,7 +953,7 @@ function resolveMidPostCenters(length, leftPostOpt, rightPostOpt, midPostsOpt, m
             }
         }
     } else if (midPostsOpt === 'custom_standard') {
-        const count = midPostCount;
+        const count = parseInt(midPostCount) || 0;
         if (count > 0) {
             const centerDist = endXBound - startXBound;
             const spanSpacing = centerDist / (count + 1);
@@ -905,10 +967,10 @@ function resolveMidPostCenters(length, leftPostOpt, rightPostOpt, midPostsOpt, m
             }
         }
     } else if (midPostsOpt === 'custom') {
-        const count = midPostCount;
+        const count = parseInt(midPostCount) || 0;
         let currentX = 0;
         for (let i = 0; i < count; i++) {
-            const spacing = (customSpacings && customSpacings[i] !== undefined) ? customSpacings[i] : 48;
+            const spacing = (customSpacings && customSpacings[i] !== undefined) ? (parseFloat(customSpacings[i]) || 48) : 48;
             currentX += spacing;
             let cx = currentX;
             if (extra6 && panelType === 'main') {
@@ -924,58 +986,66 @@ function resolveMidPostCenters(length, leftPostOpt, rightPostOpt, midPostsOpt, m
 function getPicketPositions(style, length, leftPostW, rightPostW, pickW, picketSpacing, midPostCount, midPostW, midPostsOpt = 'none', customSpacings = null, extra6 = false, panelType = 'main', deltaLeft = 0, deltaRight = 0) {
     let picketPositions = [];
     
-    let baseLength = length - (deltaLeft + deltaRight);
-    const leftPostOpt = leftPostW > 0 ? 'yes' : 'no';
-    const rightPostOpt = rightPostW > 0 ? 'yes' : 'no';
+    deltaLeft = parseFloat(deltaLeft) || 0;
+    deltaRight = parseFloat(deltaRight) || 0;
+    const numPickW = (typeof pickW === 'string') ? parseCustomSize(pickW, 0.5).w : (parseFloat(pickW) || 0.5);
+    const numPicketSpacing = (typeof picketSpacing === 'string') ? parseFractionOrDecimal(picketSpacing) : (parseFloat(picketSpacing) || 4.0);
+    const numMidPostW = (typeof midPostW === 'string') ? parseCustomSize(midPostW, 1.5).w : (parseFloat(midPostW) || 1.5);
+    const numLeftPostW = (typeof leftPostW === 'string') ? parseCustomSize(leftPostW, 0).w : (parseFloat(leftPostW) || 0);
+    const numRightPostW = (typeof rightPostW === 'string') ? parseCustomSize(rightPostW, 0).w : (parseFloat(rightPostW) || 0);
+
+    let baseLength = (parseFloat(length) || 120.0) - (deltaLeft + deltaRight);
+    const leftPostOpt = numLeftPostW > 0 ? 'yes' : 'no';
+    const rightPostOpt = numRightPostW > 0 ? 'yes' : 'no';
     
     // Resolve mid-post centers (on baseLength, relative to base length)
-    const midPostCenters = resolveMidPostCenters(baseLength, leftPostOpt, rightPostOpt, midPostsOpt, midPostCount, midPostW, customSpacings, style, extra6, panelType, 0, 0);
+    const midPostCenters = resolveMidPostCenters(baseLength, leftPostOpt, rightPostOpt, midPostsOpt, midPostCount, numMidPostW, customSpacings, style, extra6, panelType, 0, 0);
 
     // Determine grid alignment anchor point
     let anchor = null;
     if (midPostCenters.length > 0) {
         anchor = midPostCenters[0];
-    } else if (leftPostW > 0) {
-        anchor = leftPostW / 2;
-    } else if (rightPostW > 0) {
-        anchor = baseLength - rightPostW / 2;
+    } else if (numLeftPostW > 0) {
+        anchor = numLeftPostW / 2;
+    } else if (numRightPostW > 0) {
+        anchor = baseLength - numRightPostW / 2;
     }
 
-    if (anchor !== null && picketSpacing > 0) {
+    if (anchor !== null && numPicketSpacing > 0) {
         // Align picket centers to the anchor point on the picketSpacing grid
-        const minCenter = leftPostW + pickW / 2;
-        const maxCenter = baseLength - rightPostW / 2 - pickW / 2;
+        const minCenter = numLeftPostW + numPickW / 2;
+        const maxCenter = baseLength - numRightPostW / 2 - numPickW / 2;
         
         // Find the range of integer multipliers (k)
-        const startK = Math.ceil((minCenter - anchor) / picketSpacing);
-        const endK = Math.floor((maxCenter - anchor) / picketSpacing);
+        const startK = Math.ceil((minCenter - anchor) / numPicketSpacing);
+        const endK = Math.floor((maxCenter - anchor) / numPicketSpacing);
         
         for (let k = startK; k <= endK; k++) {
-            const cx = anchor + k * picketSpacing;
-            picketPositions.push(cx - pickW / 2);
+            const cx = anchor + k * numPicketSpacing;
+            picketPositions.push(cx - numPickW / 2);
         }
     } else {
         // Centered fallback (no posts, or picketSpacing <= 0)
         if (deltaLeft > 0 || deltaRight > 0) {
             const minCenter = 4.0;
-            const maxCenter = length - 4.0;
-            if (maxCenter >= minCenter && picketSpacing > 0) {
+            const maxCenter = (parseFloat(length) || 120.0) - 4.0;
+            if (maxCenter >= minCenter && numPicketSpacing > 0) {
                 const availableSpan = maxCenter - minCenter;
-                const numSpaces = Math.max(1, Math.round(availableSpan / picketSpacing));
+                const numSpaces = Math.max(1, Math.round(availableSpan / numPicketSpacing));
                 const actualSpacing = availableSpan / numSpaces;
                 for (let k = 0; k <= numSpaces; k++) {
                     const cx = minCenter + k * actualSpacing;
-                    picketPositions.push(cx - pickW / 2);
+                    picketPositions.push(cx - numPickW / 2);
                 }
             }
         } else {
-            const clearWidth = baseLength - leftPostW - rightPostW;
-            const numPickets = picketSpacing > 0 ? Math.floor((clearWidth - pickW) / picketSpacing) : 0;
+            const clearWidth = baseLength - numLeftPostW - numRightPostW;
+            const numPickets = numPicketSpacing > 0 ? Math.floor((clearWidth - numPickW) / numPicketSpacing) : 0;
             if (numPickets > 0) {
-                const usedWidth = (numPickets - 1) * picketSpacing + pickW;
-                const startX = leftPostW + (clearWidth - usedWidth) / 2;
+                const usedWidth = (numPickets - 1) * numPicketSpacing + numPickW;
+                const startX = numLeftPostW + (clearWidth - usedWidth) / 2;
                 for (let i = 0; i < numPickets; i++) {
-                    picketPositions.push(startX + i * picketSpacing);
+                    picketPositions.push(startX + i * numPicketSpacing);
                 }
             }
         }
@@ -987,12 +1057,12 @@ function getPicketPositions(style, length, leftPostW, rightPostW, pickW, picketS
     }
 
     // Filter out pickets that overlap with mid posts
-    const midPostCentersShifted = resolveMidPostCenters(length, leftPostOpt, rightPostOpt, midPostsOpt, midPostCount, midPostW, customSpacings, style, extra6, panelType, deltaLeft, deltaRight);
+    const midPostCentersShifted = resolveMidPostCenters(parseFloat(length) || 120.0, leftPostOpt, rightPostOpt, midPostsOpt, midPostCount, numMidPostW, customSpacings, style, extra6, panelType, deltaLeft, deltaRight);
     if (midPostCentersShifted.length > 0) {
         picketPositions = picketPositions.filter(px => {
             for (let j = 0; j < midPostCentersShifted.length; j++) {
                 const midCx = midPostCentersShifted[j];
-                if (Math.abs(px + pickW/2 - midCx) < (midPostW/2 + pickW/2 + 0.1)) {
+                if (Math.abs(px + numPickW/2 - midCx) < (numMidPostW/2 + numPickW/2 + 0.1)) {
                     return false;
                 }
             }
@@ -1515,7 +1585,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (inp.type === 'checkbox') {
                 panelObj[id] = inp.checked ? 'yes' : 'no';
             } else {
-                const textFields = ['drawingNo', 'jobNo', 'fabNo', 'mainMark', 'jobName', 'gc', 'address', 'cityState', 'drawnBy', 'checkedBy', 'finishText'];
+                const textFields = ['drawingNo', 'jobNo', 'fabNo', 'mainMark', 'jobName', 'gc', 'address', 'cityState', 'drawnBy', 'checkedBy', 'finishText', 'postW', 'topRailH', 'botRailH', 'midRailH', 'picketW', 'leftPostW', 'rightPostW', 'midPostW'];
                 if (textFields.includes(id)) {
                     panelObj[id] = inp.value;
                 } else {
@@ -2594,6 +2664,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 toggleCustom();
                 renderCurrentCAD();
             });
+
+            if (customInput) {
+                customInput.addEventListener('input', () => {
+                    saveCurrentInputsToActivePanel();
+                    renderCurrentCAD();
+                });
+                customInput.addEventListener('change', () => {
+                    saveCurrentInputsToActivePanel();
+                    renderCurrentCAD();
+                });
+            }
             
             // Run initial population
             updateSizes();
@@ -3042,8 +3123,8 @@ document.addEventListener('DOMContentLoaded', () => {
                             <select id="inp-postSize"></select>
                          </div>`;
                 html += `<div id="grp-postW" class="input-group hidden">
-                            <label>Post Custom Dimension (in)</label>
-                            <input type="number" id="inp-postW" value="1.5" step="0.01">
+                            <label>Post Custom Dimension</label>
+                            <input type="text" id="inp-postW" value="1.5" placeholder="e.g. 2x2x3/16 or 1.5">
                          </div>`;
 
                 // Top Runner Profile
@@ -3053,8 +3134,8 @@ document.addEventListener('DOMContentLoaded', () => {
                             <select id="inp-topRailSize"></select>
                          </div>`;
                 html += `<div id="grp-topRailH" class="input-group hidden">
-                            <label>Top Runner Custom Dim (in)</label>
-                            <input type="number" id="inp-topRailH" value="1.5" step="0.01">
+                            <label>Top Runner Custom Dim</label>
+                            <input type="text" id="inp-topRailH" value="1.5" placeholder="e.g. 2x2x3/16 or 1.5">
                          </div>`;
 
                 // Bottom Runner Profile
@@ -3064,8 +3145,8 @@ document.addEventListener('DOMContentLoaded', () => {
                             <select id="inp-botRailSize"></select>
                          </div>`;
                 html += `<div id="grp-botRailH" class="input-group hidden">
-                            <label>Bottom Runner Custom Dim (in)</label>
-                            <input type="number" id="inp-botRailH" value="1.5" step="0.01">
+                            <label>Bottom Runner Custom Dim</label>
+                            <input type="text" id="inp-botRailH" value="1.5" placeholder="e.g. 2x2x3/16 or 1.5">
                          </div>`;
 
                 // Mid Runner Profile section (hidden for classic_custom & urban_custom)
@@ -3076,8 +3157,8 @@ document.addEventListener('DOMContentLoaded', () => {
                             <select id="inp-midRailSize"></select>
                          </div>`;
                 html += `<div id="grp-midRailH" class="input-group hidden">
-                            <label>Mid Runner Custom Dim (in)</label>
-                            <input type="number" id="inp-midRailH" value="1.5" step="0.01">
+                            <label>Mid Runner Custom Dim</label>
+                            <input type="text" id="inp-midRailH" value="1.5" placeholder="e.g. 2x2x3/16 or 1.5">
                          </div>`;
                 html += `<div id="grp-midRailGap" class="input-group hidden">
                             <label>Mid Runner Gap (in)</label>
@@ -3095,8 +3176,8 @@ document.addEventListener('DOMContentLoaded', () => {
                             <select id="inp-picketSize"></select>
                          </div>`;
                 html += `<div id="grp-picketW" class="input-group hidden">
-                            <label>Picket Custom Dim (in)</label>
-                            <input type="number" id="inp-picketW" value="0.5" step="0.01">
+                            <label>Picket Custom Dim</label>
+                            <input type="text" id="inp-picketW" value="0.5" placeholder="e.g. 1/2x1/2x16GA or 0.5">
                          </div>`;
                 html += generateNumInput('Picket Spacing (in)', 'picketSpacing', 4.0);
                 html += `</div>`; // grp-rail-picket-options end
@@ -4987,9 +5068,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             
             const ext = resolveFreeEndExtensions(vals, vals.railStyle || 'classical', panelType);
-            vals.deltaLeft = ext.deltaLeft;
-            vals.deltaRight = ext.deltaRight;
-            vals.length += (ext.deltaLeft + ext.deltaRight);
+            vals.deltaLeft = (ext && !isNaN(ext.deltaLeft)) ? ext.deltaLeft : 0;
+            vals.deltaRight = (ext && !isNaN(ext.deltaRight)) ? ext.deltaRight : 0;
+            vals.length += (vals.deltaLeft + vals.deltaRight);
         }
 
         const getProfileDimension = (type, size, customVal) => window.getProfileDimension(type, size, customVal);
@@ -9191,6 +9272,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 let midRailGap = props ? props.midRailGap : ((style === 'classical') ? 0 : (isHardcodedStyle ? 3.0 : (parseFloat(vals.midRailGap) || 12.0)));
                 let postW = props ? props.postW : (isHardcodedStyle ? 1.5 : getPicketDimension(vals.postType, vals.postSize, vals.postW || 1.5));
                 let picketW = props ? props.picketW : ((style === 'classical' || style === 'executive') ? 0.5 : getPicketDimension(vals.picketType, vals.picketSize, vals.picketW || 0.5));
+                let postH = props ? props.postH : (isHardcodedStyle ? 1.5 : getProfileDimension(vals.postType, vals.postSize, vals.postW || 1.5));
+                let postT = props ? props.postT : (isHardcodedStyle ? 0.1196 : getProfileThickness(vals.postType, vals.postSize, vals.postW || 0.12));
+                let topRailW = props ? props.topRailW : (isHardcodedStyle ? 1.5 : getPicketDimension(vals.topRailType, vals.topRailSize, vals.topRailH || 1.5));
+                let topRailH = topH;
+                let topRailT = props ? props.topRailT : (isHardcodedStyle ? 0.0598 : getProfileThickness(vals.topRailType, vals.topRailSize, vals.topRailH || 0.12));
+                let botRailW = props ? props.botRailW : (isHardcodedStyle ? 1.5 : getPicketDimension(vals.botRailType, vals.botRailSize, vals.botRailH || 1.5));
+                let botRailH = botH;
+                let botRailT = props ? props.botRailT : (isHardcodedStyle ? 0.0598 : getProfileThickness(vals.botRailType, vals.botRailSize, vals.botRailH || 0.12));
+                let midRailW = props ? props.midRailW : (isHardcodedStyle ? 1.5 : getPicketDimension(vals.midRailType, vals.midRailSize, vals.midRailH || 1.5));
+                let midRailH = midH;
+                let midRailT = props ? props.midRailT : (isHardcodedStyle ? 0.0598 : getProfileThickness(vals.midRailType, vals.midRailSize, vals.midRailH || 0.12));
+                let picketH = props ? props.picketH : (isHardcodedStyle ? 0.5 : getProfileDimension(vals.picketType, vals.picketSize, vals.picketW || 0.5));
+                let picketT = props ? props.picketT : (isHardcodedStyle ? 0.0598 : getProfileThickness(vals.picketType, vals.picketSize, vals.picketW || 0.083));
 
                         const effectiveEmbed = 0;
                         const botY = pHeight - fHeight;
@@ -9588,36 +9682,36 @@ document.addEventListener('DOMContentLoaded', () => {
                         // Synchronize pendingLeaders text with consolidated BOM marks BEFORE grouping & deduplication!
                         const prepBomItems = [];
                         if (topMark) {
-                            const name = (style === 'classical' || style === 'executive') ? `HSS 1.5x1.5x16GA` : (vals.topRailSize === 'CUSTOM' ? `HSS ${topRailW}x${topRailH}x${topRailT}` : vals.topRailSize);
+                            const name = (style === 'classical' || style === 'executive') ? `HSS 1.5x1.5x16GA` : (vals.topRailSize === 'CUSTOM' ? resolveProfileDisplayName(vals.topRailType || 'hss_rect', vals.topRailSize, vals.topRailH, topRailW, topRailH, topRailT) : vals.topRailSize);
                             prepBomItems.push({ mark: topMark, qty: 1, desc: name, remark: "TOP RUNNER", len: formatFraction(vals.length), len_dec: vals.length });
                         }
                         if (botMark && railSpans.bottomSegments) {
-                            const name = (style === 'classical' || style === 'executive') ? `HSS 1.5x1.5x16GA` : (vals.botRailSize === 'CUSTOM' ? `HSS ${botRailW}x${botRailH}x${botRailT}` : vals.botRailSize);
+                            const name = (style === 'classical' || style === 'executive') ? `HSS 1.5x1.5x16GA` : (vals.botRailSize === 'CUSTOM' ? resolveProfileDisplayName(vals.botRailType || 'hss_rect', vals.botRailSize, vals.botRailH, botRailW, botRailH, botRailT) : vals.botRailSize);
                             railSpans.bottomSegments.forEach(seg => {
                                 prepBomItems.push({ mark: seg.mark, qty: 1, desc: name, remark: "BOTTOM RUNNER", len: formatFraction(seg.len), len_dec: seg.len });
                             });
                         }
                         if (midMark && railSpans.midSegments) {
-                            const name = (style === 'executive' || style === 'villa_balcony') ? `HSS 1.5x1.5x16GA` : (vals.midRailSize === 'CUSTOM' ? `HSS ${midRailW}x${midRailH}x${midRailT}` : vals.midRailSize);
+                            const name = (style === 'executive' || style === 'villa_balcony') ? `HSS 1.5x1.5x16GA` : (vals.midRailSize === 'CUSTOM' ? resolveProfileDisplayName(vals.midRailType || 'hss_rect', vals.midRailSize, vals.midRailH, midRailW, midRailH, midRailT) : vals.midRailSize);
                             railSpans.midSegments.forEach(seg => {
                                 prepBomItems.push({ mark: seg.mark, qty: 1, desc: name, remark: "MID RUNNER", len: formatFraction(seg.len), len_dec: seg.len });
                             });
                         }
                         if (leftMark) {
-                            const name = (vals.postSize === 'CUSTOM') ? `HSS ${postW}x${postH}x${postT}` : vals.postSize;
+                            const name = (vals.postSize === 'CUSTOM') ? resolveProfileDisplayName(vals.postType || 'hss_rect', vals.postSize, vals.postW, postW, postH, postT) : vals.postSize;
                             prepBomItems.push({ mark: leftMark, qty: 1, desc: name, remark: "LEFT POST", len: formatFraction(pHeight), len_dec: pHeight });
                         }
                         if (rightMark) {
-                            const name = (vals.postSize === 'CUSTOM') ? `HSS ${postW}x${postH}x${postT}` : vals.postSize;
+                            const name = (vals.postSize === 'CUSTOM') ? resolveProfileDisplayName(vals.postType || 'hss_rect', vals.postSize, vals.postW, postW, postH, postT) : vals.postSize;
                             prepBomItems.push({ mark: rightMark, qty: 1, desc: name, remark: "RIGHT POST", len: formatFraction(pHeight), len_dec: pHeight });
                         }
                         if (midPostMark && midPostCount > 0) {
-                            const name = (vals.postSize === 'CUSTOM') ? `HSS ${postW}x${postH}x${postT}` : vals.postSize;
+                            const name = (vals.postSize === 'CUSTOM') ? resolveProfileDisplayName(vals.postType || 'hss_rect', vals.postSize, vals.postW, postW, postH, postT) : vals.postSize;
                             const mpH = (style === 'executive' || style === 'executive_custom') ? 44.25 : (pHeight - topH);
                             prepBomItems.push({ mark: midPostMark, qty: midPostCount, desc: name, remark: "MID POST", len: formatFraction(mpH), len_dec: mpH });
                         }
                         if (picketMark && finalPicketsCount > 0) {
-                            const name = vals.picketSize || 'HSS 1/2x1/2x16GA';
+                            const name = (vals.picketSize === 'CUSTOM') ? resolveProfileDisplayName(vals.picketType || 'hss_rect', vals.picketSize, vals.picketW, picketW, picketH, picketT) : (vals.picketSize || 'HSS 1/2x1/2x16GA');
                             prepBomItems.push({ mark: picketMark, qty: finalPicketsCount, desc: name, remark: "PICKET", len: formatFraction(pHeight - topH - botH), len_dec: pHeight - topH - botH });
                         }
                         if (bpMark) {
@@ -11088,16 +11182,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     runnerSizeText = "HSS1 1/2x1 1/2x16GA";
                 } else {
                     if (hasMid) {
-                        const rawText = vals.midRailSize === 'CUSTOM' ? `FB${vals.midRailW}x${vals.midRailH}` : formatAiscSize(vals.midRailSize);
+                        const rawText = vals.midRailSize === 'CUSTOM' ? resolveProfileDisplayName(vals.midRailType, vals.midRailSize, vals.midRailH, midRailW, midRailH, midRailT) : formatAiscSize(vals.midRailSize);
                         runnerSizeText = rawText.replace("HSS ", "HSS").replace("FB ", "FB");
                     } else {
-                        const rawText = vals.topRailSize === 'CUSTOM' ? `HSS${vals.topRailW}x${vals.topRailH}` : formatAiscSize(vals.topRailSize);
+                        const rawText = vals.topRailSize === 'CUSTOM' ? resolveProfileDisplayName(vals.topRailType, vals.topRailSize, vals.topRailH, topRailW, topRailH, topRailT) : formatAiscSize(vals.topRailSize);
                         runnerSizeText = rawText.replace("HSS ", "HSS").replace("FB ", "FB");
                     }
                 }
                 runnerSizeText = formatToArchitecturalDesc(runnerSizeText);
                 
-                const rawPText = (style === 'classical' || style === 'executive' || style === 'urban_balcony' || style === 'villa_balcony') ? `HSS 1 1/2x1 1/2x11GA` : (vals.postSize === 'CUSTOM' ? `HSS ${vals.postW}x${vals.postH}` : formatAiscSize(vals.postSize));
+                const rawPText = (style === 'classical' || style === 'executive' || style === 'urban_balcony' || style === 'villa_balcony') ? `HSS 1 1/2x1 1/2x11GA` : (vals.postSize === 'CUSTOM' ? resolveProfileDisplayName(vals.postType, vals.postSize, vals.postW, postW, postH, postT) : formatAiscSize(vals.postSize));
                 const pSizeText = formatToArchitecturalDesc(rawPText.replace("HSS ", "HSS"));
                 
                 const meshGridW = vals.meshGridW !== undefined ? vals.meshGridW : 2.0;
@@ -11988,10 +12082,22 @@ document.addEventListener('DOMContentLoaded', () => {
                         const shapes = SHAPES_DB['hss_rect'] || [];
                         const s = shapes.find(item => item.id === size);
                         if (s) { w = s.w; h = s.h; t = s.t; }
-                    } else {
-                        w = parseFloat(customVal.w) || 2.0;
-                        h = parseFloat(customVal.h) || 2.0;
-                        t = parseFloat(customVal.t) || 0.12;
+                    } else if (customVal) {
+                        if (typeof customVal === 'string') {
+                            const p = parseCustomSize(customVal, 2.0);
+                            w = p.w; h = p.h; t = p.t;
+                        } else {
+                            if (typeof customVal.w === 'string' && (customVal.w.includes('x') || customVal.w.includes('X') || customVal.w.includes('*'))) {
+                                const p = parseCustomSize(customVal.w, 2.0);
+                                w = p.w; h = p.h; t = p.t;
+                            } else {
+                                w = typeof customVal.w === 'string' ? parseFractionOrDecimal(customVal.w) : (parseFloat(customVal.w) || 2.0);
+                                h = typeof customVal.h === 'string' ? parseFractionOrDecimal(customVal.h) : (parseFloat(customVal.h) || w);
+                            }
+                            if (customVal.t !== undefined && customVal.t !== null) {
+                                t = typeof customVal.t === 'string' ? parseFractionOrDecimal(customVal.t) : (parseFloat(customVal.t) || 0.12);
+                            }
+                        }
                     }
                     const area = 2 * t * (w + h - 2 * t);
                     lb_ft = area * steelFactor;
@@ -12001,9 +12107,14 @@ document.addEventListener('DOMContentLoaded', () => {
                         const shapes = SHAPES_DB['hss_circ'] || [];
                         const s = shapes.find(item => item.id === size);
                         if (s) { d = s.d; t = s.t; }
-                    } else {
-                        d = parseFloat(customVal.d) || 2.375;
-                        t = parseFloat(customVal.t) || 0.154;
+                    } else if (customVal) {
+                        if (typeof customVal === 'string') {
+                            const p = parseCustomSize(customVal, 2.375);
+                            d = p.w; t = p.t || 0.154;
+                        } else {
+                            d = typeof customVal.d === 'string' ? parseFractionOrDecimal(customVal.d) : (parseFloat(customVal.d) || 2.375);
+                            t = typeof customVal.t === 'string' ? parseFractionOrDecimal(customVal.t) : (parseFloat(customVal.t) || 0.154);
+                        }
                     }
                     const area = Math.PI * t * (d - t);
                     lb_ft = area * steelFactor;
@@ -12013,11 +12124,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         const shapes = SHAPES_DB['w_beam'] || [];
                         const s = shapes.find(item => item.id === size);
                         if (s) { d = s.d; bf = s.bf; tf = s.tf; tw = s.tw; }
-                    } else {
-                        d = parseFloat(customVal.d) || 8.0;
-                        bf = parseFloat(customVal.bf) || 4.0;
-                        tf = parseFloat(customVal.tf) || 0.25;
-                        tw = parseFloat(customVal.tw) || 0.23;
+                    } else if (customVal) {
+                        d = typeof customVal.d === 'string' ? parseFractionOrDecimal(customVal.d) : (parseFloat(customVal.d) || 8.0);
+                        bf = typeof customVal.bf === 'string' ? parseFractionOrDecimal(customVal.bf) : (parseFloat(customVal.bf) || 4.0);
+                        tf = typeof customVal.tf === 'string' ? parseFractionOrDecimal(customVal.tf) : (parseFloat(customVal.tf) || 0.25);
+                        tw = typeof customVal.tw === 'string' ? parseFractionOrDecimal(customVal.tw) : (parseFloat(customVal.tw) || 0.23);
                     }
                     const area = 2 * bf * tf + (d - 2 * tf) * tw;
                     lb_ft = area * steelFactor;
@@ -12027,10 +12138,10 @@ document.addEventListener('DOMContentLoaded', () => {
                         const shapes = SHAPES_DB['angles'] || [];
                         const s = shapes.find(item => item.id === size);
                         if (s) { leg1 = s.leg1; leg2 = s.leg2; t = s.t; }
-                    } else {
-                        leg1 = parseFloat(customVal.leg1) || 3.0;
-                        leg2 = parseFloat(customVal.leg2) || 3.0;
-                        t = parseFloat(customVal.t) || 0.25;
+                    } else if (customVal) {
+                        leg1 = typeof customVal.leg1 === 'string' ? parseFractionOrDecimal(customVal.leg1) : (parseFloat(customVal.leg1) || 3.0);
+                        leg2 = typeof customVal.leg2 === 'string' ? parseFractionOrDecimal(customVal.leg2) : (parseFloat(customVal.leg2) || 3.0);
+                        t = typeof customVal.t === 'string' ? parseFractionOrDecimal(customVal.t) : (parseFloat(customVal.t) || 0.25);
                     }
                     const area = t * (leg1 + leg2 - t);
                     lb_ft = area * steelFactor;
@@ -12040,11 +12151,13 @@ document.addEventListener('DOMContentLoaded', () => {
                         const shapes = SHAPES_DB['plate'] || [];
                         const s = shapes.find(item => item.id === size);
                         if (s) { t = s.t; }
-                    } else {
-                        t = parseFloat(customVal.t) || 0.5;
+                    } else if (customVal && customVal.t !== undefined) {
+                        t = typeof customVal.t === 'string' ? parseFractionOrDecimal(customVal.t) : (parseFloat(customVal.t) || 0.5);
                     }
-                    w = parseFloat(customVal.w) || 6.0;
-                    h = parseFloat(customVal.h) || 6.0;
+                    if (customVal) {
+                        w = typeof customVal.w === 'string' ? parseFractionOrDecimal(customVal.w) : (parseFloat(customVal.w) || 6.0);
+                        h = typeof customVal.h === 'string' ? parseFractionOrDecimal(customVal.h) : (parseFloat(customVal.h) || 6.0);
+                    }
                     return w * h * t * 0.2836 * qty;
                 }
                 return lb_ft * (length / 12) * qty;
@@ -12628,7 +12741,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     // Add Top Rail
                     if (topMark) {
-                        const name = (style === 'classical') ? `HSS 1.5x1.5x16GA` : (style === 'executive' ? `HSS 1.5x1.5x16GA` : (vals.topRailSize === 'CUSTOM' ? `HSS ${topRailW}x${topRailH}x${topRailT}` : vals.topRailSize));
+                        const name = (style === 'classical' || style === 'executive') ? `HSS 1.5x1.5x16GA` : (vals.topRailSize === 'CUSTOM' ? resolveProfileDisplayName(topRailType, vals.topRailSize, vals.topRailH, topRailW, topRailH, topRailT) : vals.topRailSize);
                         const wVal = calculateWeight(topRailType, (style === 'classical' || style === 'executive' ? 'CUSTOM' : vals.topRailSize), vals.length, { w: topRailW, h: topRailH, t: topRailT }, 1 * assemblyQty);
                         bomItems.push({
                             mark: topMark,
@@ -12645,7 +12758,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     // Add Bottom Rail
                     if (botMark) {
-                        const name = (style === 'classical' || style === 'executive') ? `HSS 1.5x1.5x16GA` : (vals.botRailSize === 'CUSTOM' ? `HSS ${botRailW}x${botRailH}x${botRailT}` : vals.botRailSize);
+                        const name = (style === 'classical' || style === 'executive') ? `HSS 1.5x1.5x16GA` : (vals.botRailSize === 'CUSTOM' ? resolveProfileDisplayName(botRailType, vals.botRailSize, vals.botRailH, botRailW, botRailH, botRailT) : vals.botRailSize);
                         const bottomGroups = {};
                         railSpans.bottomSegments.forEach(seg => {
                             if (!bottomGroups[seg.mark]) {
@@ -12672,7 +12785,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     // Add Mid Rail
                     if (midMark && midRailType !== 'none') {
-                        const name = (style === 'executive' || style === 'villa_balcony') ? `HSS 1.5x1.5x16GA` : (vals.midRailSize === 'CUSTOM' ? `HSS ${midRailW}x${midRailH}x${midRailT}` : vals.midRailSize);
+                        const name = (style === 'executive' || style === 'villa_balcony') ? `HSS 1.5x1.5x16GA` : (vals.midRailSize === 'CUSTOM' ? resolveProfileDisplayName(midRailType, vals.midRailSize, vals.midRailH, midRailW, midRailH, midRailT) : vals.midRailSize);
                         const midGroups = {};
                         railSpans.midSegments.forEach(seg => {
                             if (!midGroups[seg.mark]) {
@@ -12699,7 +12812,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     // Add Left / Right Posts
                     if (leftMark && rightMark && leftMark === rightMark) {
-                        const name = (style === 'classical' || style === 'executive' || style === 'urban_balcony' || style === 'villa_balcony') ? `HSS 1.5x1.5x11GA` : (vals.postSize === 'CUSTOM' ? `HSS ${postW}x${postH}x${postT}` : vals.postSize);
+                        const name = (style === 'classical' || style === 'executive' || style === 'urban_balcony' || style === 'villa_balcony') ? `HSS 1.5x1.5x11GA` : (vals.postSize === 'CUSTOM' ? resolveProfileDisplayName(postType, vals.postSize, vals.postW, postW, postH, postT) : vals.postSize);
                         const wVal = calculateWeight(postType, (style === 'classical' || style === 'executive' || style === 'urban_balcony' || style === 'villa_balcony' ? 'CUSTOM' : vals.postSize), pHeight, { w: postW, h: postH, t: postT }, 2 * assemblyQty);
                         bomItems.push({
                             mark: leftMark,
@@ -12714,7 +12827,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         });
                     } else {
                         if (leftMark) {
-                            const name = (style === 'classical' || style === 'executive' || style === 'urban_balcony' || style === 'villa_balcony') ? `HSS 1.5x1.5x11GA` : (vals.postSize === 'CUSTOM' ? `HSS ${postW}x${postH}x${postT}` : vals.postSize);
+                            const name = (style === 'classical' || style === 'executive' || style === 'urban_balcony' || style === 'villa_balcony') ? `HSS 1.5x1.5x11GA` : (vals.postSize === 'CUSTOM' ? resolveProfileDisplayName(postType, vals.postSize, vals.postW, postW, postH, postT) : vals.postSize);
                             const wVal = calculateWeight(postType, (style === 'classical' || style === 'executive' || style === 'urban_balcony' || style === 'villa_balcony' ? 'CUSTOM' : vals.postSize), pHeight, { w: postW, h: postH, t: postT }, 1 * assemblyQty);
                             bomItems.push({
                                 mark: leftMark,
@@ -12729,7 +12842,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             });
                         }
                         if (rightMark) {
-                            const name = (style === 'classical' || style === 'executive' || style === 'urban_balcony' || style === 'villa_balcony') ? `HSS 1.5x1.5x11GA` : (vals.postSize === 'CUSTOM' ? `HSS ${postW}x${postH}x${postT}` : vals.postSize);
+                            const name = (style === 'classical' || style === 'executive' || style === 'urban_balcony' || style === 'villa_balcony') ? `HSS 1.5x1.5x11GA` : (vals.postSize === 'CUSTOM' ? resolveProfileDisplayName(postType, vals.postSize, vals.postW, postW, postH, postT) : vals.postSize);
                             const wVal = calculateWeight(postType, (style === 'classical' || style === 'executive' || style === 'urban_balcony' || style === 'villa_balcony' ? 'CUSTOM' : vals.postSize), pHeight, { w: postW, h: postH, t: postT }, 1 * assemblyQty);
                             bomItems.push({
                                 mark: rightMark,
@@ -12747,7 +12860,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     // Add Mid Posts
                     if (midPostMark && midPostCount > 0) {
-                        const name = (style === 'classical' || style === 'executive' || style === 'urban_balcony' || style === 'villa_balcony') ? `HSS 1.5x1.5x11GA` : (vals.postSize === 'CUSTOM' ? `HSS ${postW}x${postH}x${postT}` : vals.postSize);
+                        const name = (style === 'classical' || style === 'executive' || style === 'urban_balcony' || style === 'villa_balcony') ? `HSS 1.5x1.5x11GA` : (vals.postSize === 'CUSTOM' ? resolveProfileDisplayName(postType, vals.postSize, vals.postW, postW, postH, postT) : vals.postSize);
                         const isExecutiveStyle = (style === 'executive' || style === 'executive_custom');
                         const mpH = style === 'executive' ? 44.25 : (pHeight - topRailH);
                         const wVal = calculateWeight(postType, (style === 'classical' || style === 'executive' || style === 'urban_balcony' || style === 'villa_balcony' ? 'CUSTOM' : vals.postSize), mpH, { w: postW, h: postH, t: postT }, midPostCount * assemblyQty);
@@ -12766,7 +12879,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     // Add Pickets
                     if (picketMark && finalPicketsCount > 0) {
-                        const name = (style === 'classical' || style === 'executive') ? `HSS 1/2x1/2x16GA` : (vals.picketSize === 'CUSTOM' ? `HSS ${picketW}x${picketH}x${picketT}` : vals.picketSize);
+                        const name = (style === 'classical' || style === 'executive') ? `HSS 1/2x1/2x16GA` : (vals.picketSize === 'CUSTOM' ? resolveProfileDisplayName(picketType, vals.picketSize, vals.picketW, picketW, picketH, picketT) : vals.picketSize);
                         const picketBottomY = (pHeight - fHeight) + botH;
                         const picketTopY = (midRailType !== 'none') ? (pHeight - topH - midRailGap - midH) : (pHeight - topH);
                         const picketLen = picketTopY - picketBottomY;
@@ -14870,11 +14983,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 } else {
                     if (topMark) {
-                        const name = (style === 'classical' || style === 'executive' || style === 'urban_balcony' || style === 'villa_balcony') ? `HSS 1.5x1.5x16GA` : (vals.topRailSize === 'CUSTOM' ? `HSS ${postW}x${topH}` : vals.topRailSize);
+                        const name = (style === 'classical' || style === 'executive' || style === 'urban_balcony' || style === 'villa_balcony') ? `HSS 1.5x1.5x16GA` : (vals.topRailSize === 'CUSTOM' ? resolveProfileDisplayName(vals.topRailType || 'hss_rect', vals.topRailSize, vals.topRailH, topRailW, topRailH, topRailT) : vals.topRailSize);
                         bomItems.push({ mark: topMark, remark: "TOP RAIL", desc: name, qty: 1, len: formatFraction(vals.length) });
                     }
                     if (botMark) {
-                        const name = (style === 'classical' || style === 'executive' || style === 'urban_balcony' || style === 'villa_balcony') ? `HSS 1.5x1.5x16GA` : (vals.botRailSize === 'CUSTOM' ? `HSS ${postW}x${botH}` : vals.botRailSize);
+                        const name = (style === 'classical' || style === 'executive' || style === 'urban_balcony' || style === 'villa_balcony') ? `HSS 1.5x1.5x16GA` : (vals.botRailSize === 'CUSTOM' ? resolveProfileDisplayName(vals.botRailType || 'hss_rect', vals.botRailSize, vals.botRailH, botRailW, botRailH, botRailT) : vals.botRailSize);
                         const bottomGroups = {};
                         railSpans.bottomSegments.forEach(seg => {
                             if (!bottomGroups[seg.mark]) {
@@ -14888,20 +15001,20 @@ document.addEventListener('DOMContentLoaded', () => {
                         });
                     }
                     if (leftMark && rightMark && leftMark === rightMark) {
-                        const name = (style === 'classical' || style === 'executive' || style === 'urban_balcony' || style === 'villa_balcony') ? `HSS 1.5x1.5x11GA` : (vals.postSize === 'CUSTOM' ? `HSS ${postW}x${postH}` : vals.postSize);
+                        const name = (style === 'classical' || style === 'executive' || style === 'urban_balcony' || style === 'villa_balcony') ? `HSS 1.5x1.5x11GA` : (vals.postSize === 'CUSTOM' ? resolveProfileDisplayName(vals.postType || 'hss_rect', vals.postSize, vals.postW, postW, postH, postT) : vals.postSize);
                         bomItems.push({ mark: leftMark, remark: "L/R POST", desc: name, qty: 2, len: formatFraction(pHeight) });
                     } else {
                         if (leftMark) {
-                            const name = (style === 'classical' || style === 'executive' || style === 'urban_balcony' || style === 'villa_balcony') ? `HSS 1.5x1.5x11GA` : (vals.postSize === 'CUSTOM' ? `HSS ${postW}x${postH}` : vals.postSize);
+                            const name = (style === 'classical' || style === 'executive' || style === 'urban_balcony' || style === 'villa_balcony') ? `HSS 1.5x1.5x11GA` : (vals.postSize === 'CUSTOM' ? resolveProfileDisplayName(vals.postType || 'hss_rect', vals.postSize, vals.postW, postW, postH, postT) : vals.postSize);
                             bomItems.push({ mark: leftMark, remark: "LEFT POST", desc: name, qty: 1, len: formatFraction(pHeight) });
                         }
                         if (rightMark) {
-                            const name = (style === 'classical' || style === 'executive' || style === 'urban_balcony' || style === 'villa_balcony') ? `HSS 1.5x1.5x11GA` : (vals.postSize === 'CUSTOM' ? `HSS ${postW}x${postH}` : vals.postSize);
+                            const name = (style === 'classical' || style === 'executive' || style === 'urban_balcony' || style === 'villa_balcony') ? `HSS 1.5x1.5x11GA` : (vals.postSize === 'CUSTOM' ? resolveProfileDisplayName(vals.postType || 'hss_rect', vals.postSize, vals.postW, postW, postH, postT) : vals.postSize);
                             bomItems.push({ mark: rightMark, remark: "RIGHT POST", desc: name, qty: 1, len: formatFraction(pHeight) });
                         }
                     }
                     if (midMark) {
-                        const name = (style === 'executive' || style === 'villa_balcony') ? `HSS 1.5x1.5x16GA` : (vals.midRailSize === 'CUSTOM' ? `HSS ${postW}x${midH}` : vals.midRailSize);
+                        const name = (style === 'executive' || style === 'villa_balcony') ? `HSS 1.5x1.5x16GA` : (vals.midRailSize === 'CUSTOM' ? resolveProfileDisplayName(vals.midRailType || 'hss_rect', vals.midRailSize, vals.midRailH, midRailW, midRailH, midRailT) : vals.midRailSize);
                         const midGroups = {};
                         railSpans.midSegments.forEach(seg => {
                             if (!midGroups[seg.mark]) {

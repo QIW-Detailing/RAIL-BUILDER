@@ -2,19 +2,80 @@ if (typeof makerjs === 'undefined' && typeof MakerJs !== 'undefined') {
     window.makerjs = MakerJs;
 }
 
+function parseFractionOrDecimal(str) {
+    if (typeof str === 'number') return isNaN(str) ? 0 : str;
+    if (!str) return 0;
+    str = str.toString().trim();
+    if (str.includes('/')) {
+        const parts = str.split(/\s+/);
+        if (parts.length === 2) {
+            const whole = parseFloat(parts[0]) || 0;
+            const fracParts = parts[1].split('/');
+            const num = parseFloat(fracParts[0]) || 0;
+            const den = parseFloat(fracParts[1]) || 1;
+            return whole + num / den;
+        } else if (parts.length === 1) {
+            const fracParts = parts[0].split('/');
+            const num = parseFloat(fracParts[0]) || 0;
+            const den = parseFloat(fracParts[1]) || 1;
+            return num / den;
+        }
+    }
+    return parseFloat(str) || 0;
+}
+window.parseFractionOrDecimal = parseFractionOrDecimal;
+
+function parseCustomSize(sizeStr, defaultVal) {
+    if (typeof sizeStr === 'number') return { w: sizeStr || defaultVal, h: sizeStr || defaultVal, t: 0.12 };
+    if (!sizeStr) return { w: defaultVal, h: defaultVal, t: 0.12 };
+    const str = sizeStr.toString().trim();
+    if (/^\d+(\.\d+)?$/.test(str)) {
+        const val = parseFloat(str);
+        return { w: val, h: val, t: 0.12 };
+    }
+    const cleanStr = str.replace(/^(HSS|FB|PL|L|PIPE|TUBING|W)\s*/i, '').replace(/"/g, '').trim();
+    const parts = cleanStr.split(/\s*[*xX]\s*/);
+    if (parts.length >= 2) {
+        const w = parseFractionOrDecimal(parts[0]);
+        const h = parseFractionOrDecimal(parts[1]);
+        let t = 0.12;
+        if (parts.length >= 3) {
+            const tStr = parts[2].trim();
+            if (tStr.toUpperCase().endsWith('GA')) {
+                const gaNum = parseInt(tStr) || 11;
+                if (gaNum === 10) t = 0.1345;
+                else if (gaNum === 11) t = 0.1196;
+                else if (gaNum === 12) t = 0.1046;
+                else if (gaNum === 14) t = 0.0747;
+                else if (gaNum === 16) t = 0.0598;
+                else t = 0.12;
+            } else {
+                t = parseFractionOrDecimal(tStr);
+            }
+        }
+        return { w: w || defaultVal, h: h || defaultVal, t: t || 0.12 };
+    }
+    const w = parseFractionOrDecimal(cleanStr);
+    return { w: w || defaultVal, h: w || defaultVal, t: 0.12 };
+}
+window.parseCustomSize = parseCustomSize;
+
 function resolveMidPostCenters(length, leftPostOpt, rightPostOpt, midPostsOpt, midPostCount, postW, customSpacings, style, extra6 = false, panelType = 'main', deltaLeft = 0, deltaRight = 0) {
     const centers = [];
     if (midPostsOpt === 'none') return centers;
 
-    let baseLength = length - (deltaLeft + deltaRight);
+    deltaLeft = parseFloat(deltaLeft) || 0;
+    deltaRight = parseFloat(deltaRight) || 0;
+    const numPostW = (typeof postW === 'string') ? parseCustomSize(postW, 1.5).w : (parseFloat(postW) || 1.5);
+
+    let baseLength = (parseFloat(length) || 120.0) - (deltaLeft + deltaRight);
     let calcLength = baseLength;
     if (extra6) {
         calcLength = baseLength - (panelType === 'main' ? 12.0 : 6.0);
     }
 
-
-    const startXBound = (leftPostOpt === 'yes' || leftPostOpt === 'corner') ? postW : 0;
-    const endXBound = (rightPostOpt === 'yes' || rightPostOpt === 'corner') ? (calcLength - postW) : calcLength;
+    const startXBound = (leftPostOpt === 'yes' || leftPostOpt === 'corner') ? numPostW : 0;
+    const endXBound = (rightPostOpt === 'yes' || rightPostOpt === 'corner') ? (calcLength - numPostW) : calcLength;
 
     if (midPostsOpt === 'default' || midPostsOpt === 'yes') {
         const count = Math.max(0, Math.ceil(calcLength / 48) - 1);
@@ -30,7 +91,7 @@ function resolveMidPostCenters(length, leftPostOpt, rightPostOpt, midPostsOpt, m
             }
         }
     } else if (midPostsOpt === 'custom_standard') {
-        const count = midPostCount;
+        const count = parseInt(midPostCount) || 0;
         if (count > 0) {
             const centerDist = endXBound - startXBound;
             const spanSpacing = centerDist / (count + 1);
@@ -44,10 +105,10 @@ function resolveMidPostCenters(length, leftPostOpt, rightPostOpt, midPostsOpt, m
             }
         }
     } else if (midPostsOpt === 'custom') {
-        const count = midPostCount;
+        const count = parseInt(midPostCount) || 0;
         let currentX = 0;
         for (let i = 0; i < count; i++) {
-            const spacing = (customSpacings && customSpacings[i] !== undefined) ? customSpacings[i] : 48;
+            const spacing = (customSpacings && customSpacings[i] !== undefined) ? (parseFloat(customSpacings[i]) || 48) : 48;
             currentX += spacing;
             let cx = currentX;
             if (extra6 && panelType === 'main') {
@@ -63,58 +124,66 @@ function resolveMidPostCenters(length, leftPostOpt, rightPostOpt, midPostsOpt, m
 function getPicketPositions(style, length, leftPostW, rightPostW, pickW, picketSpacing, midPostCount, midPostW, midPostsOpt = 'none', customSpacings = null, extra6 = false, panelType = 'main', deltaLeft = 0, deltaRight = 0) {
     let picketPositions = [];
     
-    let baseLength = length - (deltaLeft + deltaRight);
-    const leftPostOpt = leftPostW > 0 ? 'yes' : 'no';
-    const rightPostOpt = rightPostW > 0 ? 'yes' : 'no';
+    deltaLeft = parseFloat(deltaLeft) || 0;
+    deltaRight = parseFloat(deltaRight) || 0;
+    const numPickW = (typeof pickW === 'string') ? parseCustomSize(pickW, 0.5).w : (parseFloat(pickW) || 0.5);
+    const numPicketSpacing = (typeof picketSpacing === 'string') ? parseFractionOrDecimal(picketSpacing) : (parseFloat(picketSpacing) || 4.0);
+    const numMidPostW = (typeof midPostW === 'string') ? parseCustomSize(midPostW, 1.5).w : (parseFloat(midPostW) || 1.5);
+    const numLeftPostW = (typeof leftPostW === 'string') ? parseCustomSize(leftPostW, 0).w : (parseFloat(leftPostW) || 0);
+    const numRightPostW = (typeof rightPostW === 'string') ? parseCustomSize(rightPostW, 0).w : (parseFloat(rightPostW) || 0);
+
+    let baseLength = (parseFloat(length) || 120.0) - (deltaLeft + deltaRight);
+    const leftPostOpt = numLeftPostW > 0 ? 'yes' : 'no';
+    const rightPostOpt = numRightPostW > 0 ? 'yes' : 'no';
     
     // Resolve mid-post centers (on baseLength, relative to base length)
-    const midPostCenters = resolveMidPostCenters(baseLength, leftPostOpt, rightPostOpt, midPostsOpt, midPostCount, midPostW, customSpacings, style, extra6, panelType, 0, 0);
+    const midPostCenters = resolveMidPostCenters(baseLength, leftPostOpt, rightPostOpt, midPostsOpt, midPostCount, numMidPostW, customSpacings, style, extra6, panelType, 0, 0);
 
     // Determine grid alignment anchor point
     let anchor = null;
     if (midPostCenters.length > 0) {
         anchor = midPostCenters[0];
-    } else if (leftPostW > 0) {
-        anchor = leftPostW / 2;
-    } else if (rightPostW > 0) {
-        anchor = baseLength - rightPostW / 2;
+    } else if (numLeftPostW > 0) {
+        anchor = numLeftPostW / 2;
+    } else if (numRightPostW > 0) {
+        anchor = baseLength - numRightPostW / 2;
     }
 
-    if (anchor !== null && picketSpacing > 0) {
+    if (anchor !== null && numPicketSpacing > 0) {
         // Align picket centers to the anchor point on the picketSpacing grid
-        const minCenter = leftPostW + pickW / 2;
-        const maxCenter = baseLength - rightPostW / 2 - pickW / 2;
+        const minCenter = numLeftPostW + numPickW / 2;
+        const maxCenter = baseLength - numRightPostW / 2 - numPickW / 2;
         
         // Find the range of integer multipliers (k)
-        const startK = Math.ceil((minCenter - anchor) / picketSpacing);
-        const endK = Math.floor((maxCenter - anchor) / picketSpacing);
+        const startK = Math.ceil((minCenter - anchor) / numPicketSpacing);
+        const endK = Math.floor((maxCenter - anchor) / numPicketSpacing);
         
         for (let k = startK; k <= endK; k++) {
-            const cx = anchor + k * picketSpacing;
-            picketPositions.push(cx - pickW / 2);
+            const cx = anchor + k * numPicketSpacing;
+            picketPositions.push(cx - numPickW / 2);
         }
     } else {
         // Centered fallback (no posts, or picketSpacing <= 0)
         if (deltaLeft > 0 || deltaRight > 0) {
             const minCenter = 4.0;
-            const maxCenter = length - 4.0;
-            if (maxCenter >= minCenter && picketSpacing > 0) {
+            const maxCenter = (parseFloat(length) || 120.0) - 4.0;
+            if (maxCenter >= minCenter && numPicketSpacing > 0) {
                 const availableSpan = maxCenter - minCenter;
-                const numSpaces = Math.max(1, Math.round(availableSpan / picketSpacing));
+                const numSpaces = Math.max(1, Math.round(availableSpan / numPicketSpacing));
                 const actualSpacing = availableSpan / numSpaces;
                 for (let k = 0; k <= numSpaces; k++) {
                     const cx = minCenter + k * actualSpacing;
-                    picketPositions.push(cx - pickW / 2);
+                    picketPositions.push(cx - numPickW / 2);
                 }
             }
         } else {
-            const clearWidth = baseLength - leftPostW - rightPostW;
-            const numPickets = picketSpacing > 0 ? Math.floor((clearWidth - pickW) / picketSpacing) : 0;
+            const clearWidth = baseLength - numLeftPostW - numRightPostW;
+            const numPickets = numPicketSpacing > 0 ? Math.floor((clearWidth - numPickW) / numPicketSpacing) : 0;
             if (numPickets > 0) {
-                const usedWidth = (numPickets - 1) * picketSpacing + pickW;
-                const startX = leftPostW + (clearWidth - usedWidth) / 2;
+                const usedWidth = (numPickets - 1) * numPicketSpacing + numPickW;
+                const startX = numLeftPostW + (clearWidth - usedWidth) / 2;
                 for (let i = 0; i < numPickets; i++) {
-                    picketPositions.push(startX + i * picketSpacing);
+                    picketPositions.push(startX + i * numPicketSpacing);
                 }
             }
         }
@@ -126,12 +195,12 @@ function getPicketPositions(style, length, leftPostW, rightPostW, pickW, picketS
     }
 
     // Filter out pickets that overlap with mid posts
-    const midPostCentersShifted = resolveMidPostCenters(length, leftPostOpt, rightPostOpt, midPostsOpt, midPostCount, midPostW, customSpacings, style, extra6, panelType, deltaLeft, deltaRight);
+    const midPostCentersShifted = resolveMidPostCenters(parseFloat(length) || 120.0, leftPostOpt, rightPostOpt, midPostsOpt, midPostCount, numMidPostW, customSpacings, style, extra6, panelType, deltaLeft, deltaRight);
     if (midPostCentersShifted.length > 0) {
         picketPositions = picketPositions.filter(px => {
             for (let j = 0; j < midPostCentersShifted.length; j++) {
                 const midCx = midPostCentersShifted[j];
-                if (Math.abs(px + pickW/2 - midCx) < (midPostW/2 + pickW/2 + 0.1)) {
+                if (Math.abs(px + numPickW/2 - midCx) < (numMidPostW/2 + numPickW/2 + 0.1)) {
                     return false;
                 }
             }
@@ -153,16 +222,16 @@ const CadEngine = {
             const hasLeftFree = (leftPostOpt === 'none' || leftPostOpt === 'corner_none' || leftPostOpt === 'no');
             const hasRightFree = (rightPostOpt === 'none' || rightPostOpt === 'corner_none' || rightPostOpt === 'no');
             
-            let baseLen = vals.length || 120.0;
-            const postW = vals.postW !== undefined ? vals.postW : 1.5;
+            let baseLen = parseFloat(vals.length) || 120.0;
+            const postW = (typeof vals.postW === 'string') ? parseCustomSize(vals.postW, 1.5).w : (parseFloat(vals.postW) || 1.5);
             const midPostCount = (vals.midPosts === 'default' || vals.midPosts === 'yes') 
-                ? Math.max(0, Math.ceil((vals.originalLength || vals.length) / 48) - 1) 
+                ? Math.max(0, Math.ceil((parseFloat(vals.originalLength) || parseFloat(vals.length) || 120.0) / 48) - 1) 
                 : ((vals.midPosts === 'custom' || vals.midPosts === 'custom_standard') ? (parseInt(vals.midPostCount) || 0) : 0);
                 
             // Calculate mid-post centers on base length (excluding freeEnd4 extension)
             const centers = resolveMidPostCenters(baseLen, leftPostOpt, rightPostOpt, vals.midPosts || 'none', midPostCount, postW, vals.midPostSpacings || null, style, vals.extra6, panelType, 0, 0);
             
-            const pSpacing = vals.picketSpacing !== undefined ? vals.picketSpacing : 4.0;
+            const pSpacing = (typeof vals.picketSpacing === 'string') ? parseFractionOrDecimal(vals.picketSpacing) : (parseFloat(vals.picketSpacing) || 4.0);
             
             if (hasLeftFree) {
                 let c2_base = baseLen;
@@ -188,7 +257,7 @@ const CadEngine = {
                 deltaRight = Math.max(0, c2_prime - baseLen);
             }
         }
-        return { deltaLeft, deltaRight };
+        return { deltaLeft: isNaN(deltaLeft) ? 0 : deltaLeft, deltaRight: isNaN(deltaRight) ? 0 : deltaRight };
     },
     /**
      * Helper to check if Maker.js is available
@@ -2577,23 +2646,33 @@ if (typeof makerjs !== 'undefined' && makerjs.measure) {
         length = parseFloat(length) || 120.0;
         fenceHeight = parseFloat(fenceHeight) || 41.0;
         postHeight = parseFloat(postHeight) || 45.75;
-        postW = parseFloat(postW) || 1.5;
-        postH = parseFloat(postH) || 1.5;
-        postT = parseFloat(postT) || 0.1196;
-        topRailW = parseFloat(topRailW) || 1.5;
-        topRailH = parseFloat(topRailH) || 1.5;
-        topRailT = parseFloat(topRailT) || 0.0598;
-        botRailW = parseFloat(botRailW) || 1.5;
-        botRailH = parseFloat(botRailH) || 1.5;
-        botRailT = parseFloat(botRailT) || 0.0598;
-        midRailW = parseFloat(midRailW) || 1.5;
-        midRailH = parseFloat(midRailH) || 1.5;
-        midRailT = parseFloat(midRailT) || 0.0598;
-        midRailGap = parseFloat(midRailGap) || 12.0;
-        picketW = parseFloat(picketW) || 0.5;
-        picketH = parseFloat(picketH) || 0.5;
-        picketT = parseFloat(picketT) || 0.0598;
-        picketSpacing = parseFloat(picketSpacing) || 4.0;
+
+        const parsedPost = (typeof postW === 'string' || typeof postH === 'string') ? parseCustomSize(postW || postH, 1.5) : { w: parseFloat(postW) || 1.5, h: parseFloat(postH) || 1.5, t: parseFloat(postT) || 0.1196 };
+        postW = parsedPost.w;
+        postH = (postH !== undefined && typeof postH === 'string' && !postH.includes('x') && !postH.includes('*')) ? parseFractionOrDecimal(postH) : parsedPost.h;
+        postT = (postT !== undefined && typeof postT === 'string') ? parseFractionOrDecimal(postT) : (parsedPost.t || parseFloat(postT) || 0.1196);
+
+        const parsedTop = (typeof topRailW === 'string' || typeof topRailH === 'string') ? parseCustomSize(topRailW || topRailH, 1.5) : { w: parseFloat(topRailW) || 1.5, h: parseFloat(topRailH) || 1.5, t: parseFloat(topRailT) || 0.0598 };
+        topRailW = parsedTop.w;
+        topRailH = (topRailH !== undefined && typeof topRailH === 'string' && !topRailH.includes('x') && !topRailH.includes('*')) ? parseFractionOrDecimal(topRailH) : parsedTop.h;
+        topRailT = (topRailT !== undefined && typeof topRailT === 'string') ? parseFractionOrDecimal(topRailT) : (parsedTop.t || parseFloat(topRailT) || 0.0598);
+
+        const parsedBot = (typeof botRailW === 'string' || typeof botRailH === 'string') ? parseCustomSize(botRailW || botRailH, 1.5) : { w: parseFloat(botRailW) || 1.5, h: parseFloat(botRailH) || 1.5, t: parseFloat(botRailT) || 0.0598 };
+        botRailW = parsedBot.w;
+        botRailH = (botRailH !== undefined && typeof botRailH === 'string' && !botRailH.includes('x') && !botRailH.includes('*')) ? parseFractionOrDecimal(botRailH) : parsedBot.h;
+        botRailT = (botRailT !== undefined && typeof botRailT === 'string') ? parseFractionOrDecimal(botRailT) : (parsedBot.t || parseFloat(botRailT) || 0.0598);
+
+        const parsedMid = (typeof midRailW === 'string' || typeof midRailH === 'string') ? parseCustomSize(midRailW || midRailH, 1.5) : { w: parseFloat(midRailW) || 1.5, h: parseFloat(midRailH) || 1.5, t: parseFloat(midRailT) || 0.0598 };
+        midRailW = parsedMid.w;
+        midRailH = (midRailH !== undefined && typeof midRailH === 'string' && !midRailH.includes('x') && !midRailH.includes('*')) ? parseFractionOrDecimal(midRailH) : parsedMid.h;
+        midRailT = (midRailT !== undefined && typeof midRailT === 'string') ? parseFractionOrDecimal(midRailT) : (parsedMid.t || parseFloat(midRailT) || 0.0598);
+        midRailGap = typeof midRailGap === 'string' ? parseFractionOrDecimal(midRailGap) : (parseFloat(midRailGap) || 12.0);
+
+        const parsedPick = (typeof picketW === 'string' || typeof picketH === 'string') ? parseCustomSize(picketW || picketH, 0.5) : { w: parseFloat(picketW) || 0.5, h: parseFloat(picketH) || 0.5, t: parseFloat(picketT) || 0.0598 };
+        picketW = parsedPick.w;
+        picketH = (picketH !== undefined && typeof picketH === 'string' && !picketH.includes('x') && !picketH.includes('*')) ? parseFractionOrDecimal(picketH) : parsedPick.h;
+        picketT = (picketT !== undefined && typeof picketT === 'string') ? parseFractionOrDecimal(picketT) : (parsedPick.t || parseFloat(picketT) || 0.0598);
+        picketSpacing = typeof picketSpacing === 'string' ? parseFractionOrDecimal(picketSpacing) : (parseFloat(picketSpacing) || 4.0);
         meshGridW = parseFloat(meshGridW) || 2.0;
         meshGridH = parseFloat(meshGridH) || 2.0;
         meshWireD = parseFloat(meshWireD) || 0.135;
@@ -3723,34 +3802,48 @@ if (typeof makerjs !== 'undefined' && makerjs.measure) {
             if (forceCornerRight) rightPostVal = 'corner';
         }
         const props = window.getResolvedPanelProperties ? window.getResolvedPanelProperties(panel, style) : null;
-        let fHeight = props ? props.fHeight : (panel.fenceHeight !== undefined ? panel.fenceHeight : 41.0);
-        let pHeight = props ? props.pHeight : (panel.postHeight !== undefined ? panel.postHeight : 45.75);
+        let fHeight = props ? (parseFloat(props.fHeight) || 41.0) : (parseFloat(panel.fenceHeight) || 41.0);
+        let pHeight = props ? (parseFloat(props.pHeight) || 45.75) : (parseFloat(panel.postHeight) || 45.75);
         let postType = props ? props.postType : (panel.postType || 'hss_rect');
-        let postW = props ? props.postW : (panel.postW !== undefined ? panel.postW : 1.5);
-        let postH = props ? props.postH : (panel.postH !== undefined ? panel.postH : 1.5);
-        let postT = props ? props.postT : (panel.postT !== undefined ? panel.postT : 0.1196);
+        const rawPostW = props ? props.postW : panel.postW;
+        const parsedPost = (typeof rawPostW === 'string') ? parseCustomSize(rawPostW, 1.5) : { w: parseFloat(rawPostW) || 1.5, h: parseFloat(props?.postH || panel?.postH) || 1.5, t: parseFloat(props?.postT || panel?.postT) || 0.1196 };
+        let postW = parsedPost.w;
+        let postH = (props && props.postH !== undefined && typeof props.postH !== 'string') ? props.postH : (parsedPost.h || postW);
+        let postT = (props && props.postT !== undefined && typeof props.postT !== 'string') ? props.postT : (parsedPost.t || 0.1196);
         
         let topRailType = props ? props.topRailType : (panel.topRailType || 'hss_rect');
-        let topRailW = props ? props.topRailW : (panel.topRailW !== undefined ? panel.topRailW : 1.5);
-        let topRailH = props ? props.topRailH : (panel.topRailH !== undefined ? panel.topRailH : 1.5);
-        let topRailT = props ? props.topRailT : (panel.topRailT !== undefined ? panel.topRailT : 0.0598);
+        const rawTopW = props ? props.topRailW : panel.topRailW;
+        const rawTopH = props ? props.topRailH : panel.topRailH;
+        const parsedTop = (typeof rawTopW === 'string' || typeof rawTopH === 'string') ? parseCustomSize(rawTopW || rawTopH, 1.5) : { w: parseFloat(rawTopW) || 1.5, h: parseFloat(rawTopH) || 1.5, t: parseFloat(props?.topRailT || panel?.topRailT) || 0.0598 };
+        let topRailW = parsedTop.w;
+        let topRailH = (props && props.topRailH !== undefined && typeof props.topRailH !== 'string') ? props.topRailH : parsedTop.h;
+        let topRailT = (props && props.topRailT !== undefined && typeof props.topRailT !== 'string') ? props.topRailT : parsedTop.t;
         
         let botRailType = props ? props.botRailType : (panel.botRailType || 'hss_rect');
-        let botRailW = props ? props.botRailW : (panel.botRailW !== undefined ? panel.botRailW : 1.5);
-        let botRailH = props ? props.botRailH : (panel.botRailH !== undefined ? panel.botRailH : 1.5);
-        let botRailT = props ? props.botRailT : (panel.botRailT !== undefined ? panel.botRailT : 0.0598);
+        const rawBotW = props ? props.botRailW : panel.botRailW;
+        const rawBotH = props ? props.botRailH : panel.botRailH;
+        const parsedBot = (typeof rawBotW === 'string' || typeof rawBotH === 'string') ? parseCustomSize(rawBotW || rawBotH, 1.5) : { w: parseFloat(rawBotW) || 1.5, h: parseFloat(rawBotH) || 1.5, t: parseFloat(props?.botRailT || panel?.botRailT) || 0.0598 };
+        let botRailW = parsedBot.w;
+        let botRailH = (props && props.botRailH !== undefined && typeof props.botRailH !== 'string') ? props.botRailH : parsedBot.h;
+        let botRailT = (props && props.botRailT !== undefined && typeof props.botRailT !== 'string') ? props.botRailT : parsedBot.t;
         
         let midRailType = props ? props.midRailType : (panel.midRailType || 'none');
-        let midRailW = props ? props.midRailW : (panel.midRailW !== undefined ? panel.midRailW : 1.5);
-        let midRailH = props ? props.midRailH : (panel.midRailH !== undefined ? panel.midRailH : 1.5);
-        let midRailT = props ? props.midRailT : (panel.midRailT !== undefined ? panel.midRailT : 0.0598);
-        let midRailGap = props ? props.midRailGap : (panel.midRailGap !== undefined ? panel.midRailGap : 12.0);
+        const rawMidW = props ? props.midRailW : panel.midRailW;
+        const rawMidH = props ? props.midRailH : panel.midRailH;
+        const parsedMid = (typeof rawMidW === 'string' || typeof rawMidH === 'string') ? parseCustomSize(rawMidW || rawMidH, 1.5) : { w: parseFloat(rawMidW) || 1.5, h: parseFloat(rawMidH) || 1.5, t: parseFloat(props?.midRailT || panel?.midRailT) || 0.0598 };
+        let midRailW = parsedMid.w;
+        let midRailH = (props && props.midRailH !== undefined && typeof props.midRailH !== 'string') ? props.midRailH : parsedMid.h;
+        let midRailT = (props && props.midRailT !== undefined && typeof props.midRailT !== 'string') ? props.midRailT : parsedMid.t;
+        let midRailGap = props ? (parseFloat(props.midRailGap) || 12.0) : ((typeof panel.midRailGap === 'string') ? parseFractionOrDecimal(panel.midRailGap) : (parseFloat(panel.midRailGap) || 12.0));
         
         let picketType = props ? props.picketType : (panel.picketType || 'hss_rect');
-        let picketW = props ? props.picketW : (panel.picketW !== undefined ? panel.picketW : 0.5);
-        let picketH = props ? props.picketH : (panel.picketH !== undefined ? panel.picketH : 0.5);
-        let picketT = props ? props.picketT : (panel.picketT !== undefined ? panel.picketT : 0.0598);
-        let picketSpacing = props ? props.picketSpacing : (panel.picketSpacing !== undefined ? panel.picketSpacing : 4.0);
+        const rawPickW = props ? props.picketW : panel.picketW;
+        const rawPickH = props ? props.picketH : panel.picketH;
+        const parsedPick = (typeof rawPickW === 'string' || typeof rawPickH === 'string') ? parseCustomSize(rawPickW || rawPickH, 0.5) : { w: parseFloat(rawPickW) || 0.5, h: parseFloat(rawPickH) || 0.5, t: parseFloat(props?.picketT || panel?.picketT) || 0.0598 };
+        let picketW = parsedPick.w;
+        let picketH = (props && props.picketH !== undefined && typeof props.picketH !== 'string') ? props.picketH : parsedPick.h;
+        let picketT = (props && props.picketT !== undefined && typeof props.picketT !== 'string') ? props.picketT : parsedPick.t;
+        let picketSpacing = props ? (parseFloat(props.picketSpacing) || 4.0) : ((typeof panel.picketSpacing === 'string') ? parseFractionOrDecimal(panel.picketSpacing) : (parseFloat(panel.picketSpacing) || 4.0));
         
         let includeBasePlates = props ? props.includeBasePlates : (panel.includeBasePlates || 'no');
         let bpW = props ? props.bpW : (panel.basePlateW !== undefined ? panel.basePlateW : 6.0);
@@ -3910,8 +4003,8 @@ if (typeof makerjs !== 'undefined' && makerjs.measure) {
             freeEnd4: panel.freeEnd4 || false
         };
         const ext = this.resolveFreeEndExtensions(vals, style, panelType);
-        const deltaLeft = ext.deltaLeft;
-        const deltaRight = ext.deltaRight;
+        const deltaLeft = ext.deltaLeft || 0;
+        const deltaRight = ext.deltaRight || 0;
         currentLength += (deltaLeft + deltaRight);
 
         return this.createRailCatalog(
@@ -3975,9 +4068,20 @@ if (typeof makerjs !== 'undefined' && makerjs.measure) {
         const left = set.leftReturn;
         const right = set.rightReturn;
         
-        const postW = (main && main.postW !== undefined) ? main.postW : 1.5;
-        const postH = (main && main.postH !== undefined) ? main.postH : 1.5;
-        const topRailW = (main && main.topRailW !== undefined) ? main.topRailW : 1.5;
+        LM = parseFloat(LM) || 120.0;
+        LL = parseFloat(LL) || 36.0;
+        LR = parseFloat(LR) || 36.0;
+        deltaLeftMain = parseFloat(deltaLeftMain) || 0;
+        deltaRightMain = parseFloat(deltaRightMain) || 0;
+
+        const rawPostW = (main && main.postW !== undefined) ? main.postW : 1.5;
+        const parsedPost = (typeof rawPostW === 'string') ? parseCustomSize(rawPostW, 1.5) : { w: parseFloat(rawPostW) || 1.5, h: parseFloat(main?.postH) || 1.5 };
+        const postW = parsedPost.w || 1.5;
+        const postH = (main && main.postH !== undefined && typeof main.postH !== 'string') ? (parseFloat(main.postH) || 1.5) : (parsedPost.h || 1.5);
+        
+        const rawTopRailW = (main && main.topRailW !== undefined) ? main.topRailW : ((main && main.topRailH !== undefined) ? main.topRailH : 1.5);
+        const parsedTop = (typeof rawTopRailW === 'string') ? parseCustomSize(rawTopRailW, 1.5) : { w: parseFloat(rawTopRailW) || 1.5 };
+        const topRailW = parsedTop.w || 1.5;
         
         if (main) {
             topView.models.mainRail = new makerjs.models.Rectangle(LM, topRailW);
@@ -4056,7 +4160,7 @@ if (typeof makerjs !== 'undefined' && makerjs.measure) {
             const rightPostOpt = main.rightPost || 'yes';
             const midPostsOpt = main.midPosts || 'none';
             const style = main.railStyle || 'classical';
-            const origLength = main.length || 120.0;
+            const origLength = parseFloat(main.length) || 120.0;
             const midPostCount = (midPostsOpt === 'default' || midPostsOpt === 'yes') 
                 ? Math.max(0, Math.ceil(origLength / 48) - 1) 
                 : ((midPostsOpt === 'custom' || midPostsOpt === 'custom_standard') ? (parseInt(main.midPostCount) || 0) : 0);
@@ -4110,65 +4214,71 @@ if (typeof makerjs !== 'undefined' && makerjs.measure) {
         let deltaRightRight = 0;
 
         if (set.main) {
+            const rawPostW = (set.main.postW !== undefined) ? set.main.postW : 1.5;
+            const parsedPostW = (typeof rawPostW === 'string') ? parseCustomSize(rawPostW, 1.5).w : (parseFloat(rawPostW) || 1.5);
             const extMain = this.resolveFreeEndExtensions({
                 length: LM,
-                originalLength: set.main.length || 120.0,
+                originalLength: parseFloat(set.main.length) || 120.0,
                 leftPost: set.main.leftPost === 'yes' ? 'yes' : 'none',
                 rightPost: set.main.rightPost === 'yes' ? 'yes' : 'none',
                 midPosts: set.main.midPosts || 'none',
                 midPostCount: (set.main.midPosts === 'default' || set.main.midPosts === 'yes') 
-                    ? Math.max(0, Math.ceil(set.main.length / 48) - 1) 
+                    ? Math.max(0, Math.ceil((parseFloat(set.main.length) || 120.0) / 48) - 1) 
                     : ((set.main.midPosts === 'custom' || set.main.midPosts === 'custom_standard') ? (parseInt(set.main.midPostCount) || 0) : 0),
-                postW: (set.main.postW !== undefined) ? set.main.postW : 1.5,
+                postW: parsedPostW,
                 midPostSpacings: set.main.midPostSpacings || null,
-                picketSpacing: (set.main.picketSpacing !== undefined) ? set.main.picketSpacing : 4.0,
+                picketSpacing: (typeof set.main.picketSpacing === 'string') ? parseFractionOrDecimal(set.main.picketSpacing) : (parseFloat(set.main.picketSpacing) || 4.0),
                 extra6: set.main.extra6 || false,
                 freeEnd4: set.main.freeEnd4 || false
             }, style, 'main');
-            deltaLeftMain = extMain.deltaLeft;
-            deltaRightMain = extMain.deltaRight;
+            deltaLeftMain = extMain.deltaLeft || 0;
+            deltaRightMain = extMain.deltaRight || 0;
             LM += (deltaLeftMain + deltaRightMain);
         }
         
         if (set.leftReturn) {
+            const rawPostW = (set.main && set.main.postW !== undefined) ? set.main.postW : 1.5;
+            const parsedPostW = (typeof rawPostW === 'string') ? parseCustomSize(rawPostW, 1.5).w : (parseFloat(rawPostW) || 1.5);
             const extLeft = this.resolveFreeEndExtensions({
                 length: LL,
-                originalLength: set.leftReturn.length || 36.0,
+                originalLength: parseFloat(set.leftReturn.length) || 36.0,
                 leftPost: 'corner',
                 rightPost: 'none',
                 midPosts: set.leftReturn.midPosts || 'none',
                 midPostCount: (set.leftReturn.midPosts === 'default' || set.leftReturn.midPosts === 'yes') 
-                    ? Math.max(0, Math.ceil(set.leftReturn.length / 48) - 1) 
+                    ? Math.max(0, Math.ceil((parseFloat(set.leftReturn.length) || 36.0) / 48) - 1) 
                     : ((set.leftReturn.midPosts === 'custom' || set.leftReturn.midPosts === 'custom_standard') ? (parseInt(set.leftReturn.midPostCount) || 0) : 0),
-                postW: (set.main && set.main.postW !== undefined) ? set.main.postW : 1.5,
+                postW: parsedPostW,
                 midPostSpacings: set.leftReturn.midPostSpacings || null,
-                picketSpacing: (set.leftReturn.picketSpacing !== undefined) ? set.leftReturn.picketSpacing : 4.0,
+                picketSpacing: (typeof set.leftReturn.picketSpacing === 'string') ? parseFractionOrDecimal(set.leftReturn.picketSpacing) : (parseFloat(set.leftReturn.picketSpacing) || 4.0),
                 extra6: set.leftReturn.extra6 || false,
                 freeEnd4: set.leftReturn.freeEnd4 || false
             }, style, 'leftReturn');
-            deltaLeftLeft = extLeft.deltaLeft;
-            deltaRightLeft = extLeft.deltaRight;
+            deltaLeftLeft = extLeft.deltaLeft || 0;
+            deltaRightLeft = extLeft.deltaRight || 0;
             LL += (deltaLeftLeft + deltaRightLeft);
         }
         
         if (set.rightReturn) {
+            const rawPostW = (set.main && set.main.postW !== undefined) ? set.main.postW : 1.5;
+            const parsedPostW = (typeof rawPostW === 'string') ? parseCustomSize(rawPostW, 1.5).w : (parseFloat(rawPostW) || 1.5);
             const extRight = this.resolveFreeEndExtensions({
                 length: LR,
-                originalLength: set.rightReturn.length || 36.0,
+                originalLength: parseFloat(set.rightReturn.length) || 36.0,
                 leftPost: 'corner',
                 rightPost: 'none',
                 midPosts: set.rightReturn.midPosts || 'none',
                 midPostCount: (set.rightReturn.midPosts === 'default' || set.rightReturn.midPosts === 'yes') 
-                    ? Math.max(0, Math.ceil(set.rightReturn.length / 48) - 1) 
+                    ? Math.max(0, Math.ceil((parseFloat(set.rightReturn.length) || 36.0) / 48) - 1) 
                     : ((set.rightReturn.midPosts === 'custom' || set.rightReturn.midPosts === 'custom_standard') ? (parseInt(set.rightReturn.midPostCount) || 0) : 0),
-                postW: (set.main && set.main.postW !== undefined) ? set.main.postW : 1.5,
+                postW: parsedPostW,
                 midPostSpacings: set.rightReturn.midPostSpacings || null,
-                picketSpacing: (set.rightReturn.picketSpacing !== undefined) ? set.rightReturn.picketSpacing : 4.0,
+                picketSpacing: (typeof set.rightReturn.picketSpacing === 'string') ? parseFractionOrDecimal(set.rightReturn.picketSpacing) : (parseFloat(set.rightReturn.picketSpacing) || 4.0),
                 extra6: set.rightReturn.extra6 || false,
                 freeEnd4: set.rightReturn.freeEnd4 || false
             }, style, 'rightReturn');
-            deltaLeftRight = extRight.deltaLeft;
-            deltaRightRight = extRight.deltaRight;
+            deltaLeftRight = extRight.deltaLeft || 0;
+            deltaRightRight = extRight.deltaRight || 0;
             LR += (deltaLeftRight + deltaRightRight);
         }
 
