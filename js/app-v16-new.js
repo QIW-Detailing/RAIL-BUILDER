@@ -4518,7 +4518,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         const lenGroup = document.getElementById('inp-length')?.closest('.input-group');
                         if (lenGroup) {
                             const lbl = lenGroup.querySelector('label');
-                            if (lbl) lbl.textContent = isGates ? 'Gate Length (in)' : 'Total Length (in)';
+                            if (lbl) lbl.textContent = isGates ? "Gate Length (ft'-in)" : "Total Length (ft'-in)";
                         }
                         const fhGroup = document.getElementById('inp-fenceHeight')?.closest('.input-group');
                         if (fhGroup) {
@@ -4925,7 +4925,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function generateNumInput(label, id, def) {
         let cleanLabel = label;
-        if (cleanLabel.endsWith('(in)')) {
+        if (cleanLabel.includes('Total Length') || cleanLabel.includes('Gate Length') || id === 'length') {
+            cleanLabel = cleanLabel.replace(/\s*\([^)]*\)/, '').trim() + " (ft'-in)";
+        } else if (cleanLabel.endsWith('(in)')) {
             cleanLabel = cleanLabel.replace('(in)', '(ft-in / in)');
         }
         return `<div class="input-group">
@@ -7452,7 +7454,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const hasBasePlates = (vals.includeBasePlates === 'yes');
             const isMeshStyle = (style === 'urban_balcony' || style === 'villa_balcony' || style === 'urban_custom' || style === 'villa_custom' || (typeof style === 'string' && (style.toLowerCase().includes('urban') || style.toLowerCase().includes('villa'))));
-            const hasTopDetails = (vals.includeBasePlates === 'yes' && !isMeshStyle);
+            const hasTopDetails = (vals.includeBasePlates === 'yes');
 
             let unpaddedMinX, unpaddedMaxX, unpaddedMinY, unpaddedMaxY;
             let cadMinX, cadMaxX, cadMinY, cadMaxY;
@@ -7887,7 +7889,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const bomTableHeight = 11 + predictedBomCount * 4.5;
             const bomBottomY = 18 + predictedBomCount * 4.5; // with 2mm safety buffer
             const detailsBottomY = bomBottomY;
-            const upperBoundaryY = Math.max(25, detailsBottomY + 4);
+            const upperBoundaryY = Math.max((isMeshStyle && hasTopDetails) ? 60 : 25, detailsBottomY + 4);
 
             let selectedScale = standardScales[standardScales.length - 1]; // Default to smallest
             let layoutMode = 'leftArea'; // Default layout mode
@@ -7920,11 +7922,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (compDims) {
                         tempDimOffsetBottom = 11;
                         tempMarginBottom = 12;
-                        tempMarginTop = 14;
+                        tempMarginTop = isMeshStyle ? 22 : 14;
                     } else {
                         tempDimOffsetBottom = 16;
                         tempMarginBottom = 14;
-                        tempMarginTop = 18;
+                        tempMarginTop = isMeshStyle ? 33 : 18;
                     }
                 } else {
                     if (hasTopDetails) {
@@ -7955,6 +7957,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     // fullWidth
                     tempPdfX = (297 - w_mm) / 2;
                     const rightDimSpan = (compDims ? 23.0 : 33.0) + 3.0;
+                    if (isMeshStyle && hasTopDetails && (60.0 + w_mm + rightDimSpan <= 287.0)) {
+                        tempPdfX = Math.max(60.0, tempPdfX);
+                    }
                     if (tempPdfX + w_mm + rightDimSpan > 287.0) {
                         tempPdfX = 287.0 - w_mm - rightDimSpan;
                     }
@@ -7964,7 +7969,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 // Determine pdfY
-                const eff_upperY = Math.max(38, upperBoundaryY);
+                const eff_upperY = Math.max((isMeshStyle && hasTopDetails) ? 58 : 38, upperBoundaryY);
                 const remainingYSpace = (175 - eff_upperY) - (h_mm + tempMarginTop + tempMarginBottom);
                 const isRetPanel = (activePanelType === 'leftReturn' || activePanelType === 'rightReturn');
                 const maxDimY = isRetPanel ? 158.0 : 163.0;
@@ -7982,13 +7987,28 @@ document.addEventListener('DOMContentLoaded', () => {
                     return false;
                 }
 
+                // Check Detail A collision (top-left: X [8..60], Y [8..56])
+                if (isMeshStyle && hasTopDetails) {
+                    if (tempPdfX < 60.0 && (tempPdfY - (compDims ? 22 : 33) < 60.0)) {
+                        return false;
+                    }
+                }
+
+                // Check Section A collision (left side: X [9..58], Y [60..102])
+                if (isMeshStyle && !isLoosePost && activePanelType === 'main') {
+                    if (tempPdfX < 58.0 && (tempPdfY - (compDims ? 22 : 33) < 102.0)) {
+                        return false;
+                    }
+                }
+
                 // Check BOM box collision
                 // BOM box is in range X: [199.0, 290.0], Y: [7.0, bomBottomY]
                 const bomBottomY_local = 18 + predictedBomCount * 4.5;
                 const hasHorizontalOverlap = (tempPdfX + w_mm > 199.0) && (tempPdfX < 290.0);
                 if (hasHorizontalOverlap) {
-                    // Top of annotations is tempPdfY - 33
-                    if (tempPdfY - 33 < bomBottomY_local) {
+                    const topAnnOffset = isMeshStyle ? (compDims ? 22 : 33) : 33;
+                    const bomBuffer = isMeshStyle ? 4.0 : 0;
+                    if (tempPdfY - topAnnOffset < bomBottomY_local + bomBuffer) {
                         return false;
                     }
                 }
@@ -8006,6 +8026,18 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Skip scales larger than 1/2" = 1'-0" for panels longer than 8ft (unless overridden by user)
                     if (!selectedScaleOverride && (vals.length || 120) > 96) {
                         if (s.ratio > (0.5 / 12) + 0.0001) {
+                            continue;
+                        }
+                    }
+                    // For mesh styles (urban, villa, and custom styles), panels longer than 15ft cannot fit 1/2" = 1'-0" without colliding with Detail A or BOM box; step down to 3/8" = 1'-0"
+                    if (!selectedScaleOverride && isMeshStyle && (vals.length || 120) > 180) {
+                        if (s.ratio > (0.375 / 12) + 0.0001) {
+                            continue;
+                        }
+                    }
+                    // For mesh styles, panels longer than 20ft step down to 1/4" = 1'-0"
+                    if (!selectedScaleOverride && isMeshStyle && (vals.length || 120) > 240) {
+                        if (s.ratio > (0.25 / 12) + 0.0001) {
                             continue;
                         }
                     }
@@ -8028,7 +8060,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
 
                     // 2. Check if it fits in Full-Width layout with standard dimensions (vertical padding: 35mm)
-                    const fullAvailW = 236; // 236mm max drawing width: 12'-16' panels auto-select 1/2"=1'-0", longer panels auto-step down
+                    const fullAvailW = isMeshStyle ? 195 : 236; // 236mm max drawing width: 12'-16' panels auto-select 1/2"=1'-0", longer panels auto-step down
                     const fullAvailH_std = (175 - upperBoundaryY) - 35;
 
                     if (w_mm <= fullAvailW && h_mm <= fullAvailH_std) {
@@ -8111,11 +8143,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (useCompressedDims) {
                             tempDimOffsetBottom = 11;
                             tempMarginBottom = 12;
-                            tempMarginTop = 14;
+                            tempMarginTop = isMeshStyle ? 22 : 14;
                         } else {
                             tempDimOffsetBottom = 16;
                             tempMarginBottom = 14;
-                            tempMarginTop = 18;
+                            tempMarginTop = isMeshStyle ? 33 : 18;
                         }
                     } else {
                         if (hasTopDetails) {
@@ -8136,7 +8168,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     // Calculate temp pdfY with maxExtra clamping to preserve drawing position safely clear of bottom title text
                     let tempPdfY;
-                    const eff_upperY = Math.max(38, upperBoundaryY);
+                    const eff_upperY = Math.max((isMeshStyle && hasTopDetails) ? 58 : 38, upperBoundaryY);
                     const remainingYSpace = (175 - eff_upperY) - (tempDrawH + tempMarginTop + tempMarginBottom);
                     const isRetPanel = (activePanelType === 'leftReturn' || activePanelType === 'rightReturn');
                     const maxDimY = isRetPanel ? 158.0 : 163.0;
@@ -8181,14 +8213,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     dimOffset2 = -12;
                     dimOffset3 = -17;
                     dimOffsetBottom = 11;
-                    marginTop = 14;
+                    marginTop = isMeshStyle ? 22 : 14;
                     marginBottom = 12;
                 } else {
                     dimOffset1 = -12;
                     dimOffset2 = -20;
                     dimOffset3 = -28;
                     dimOffsetBottom = 16;
-                    marginTop = 18;
+                    marginTop = isMeshStyle ? 33 : 18;
                     marginBottom = 14;
                 }
                 marginLeft = 25;
@@ -8228,6 +8260,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             let pdfX = (297 - drawW) / 2;
             const rightDimSpan = (useCompressedDims ? 23.0 : 33.0) + 3.0;
+            if (isMeshStyle && hasTopDetails && (60.0 + drawW + rightDimSpan <= 287.0)) {
+                pdfX = Math.max(60.0, pdfX);
+            }
             if (pdfX + drawW + rightDimSpan > 287.0) {
                 pdfX = 287.0 - drawW - rightDimSpan;
             }
@@ -8236,7 +8271,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             let pdfY;
-            const eff_upperY = Math.max(38, upperBoundaryY);
+            const eff_upperY = Math.max((isMeshStyle && hasTopDetails) ? 58 : 38, upperBoundaryY);
             if (isLoosePost) {
                 const availYSpace = (152.0 - eff_upperY) - drawH;
                 pdfY = eff_upperY + Math.max(8, availYSpace / 2);

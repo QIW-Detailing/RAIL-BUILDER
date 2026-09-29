@@ -4437,7 +4437,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         const lenGroup = document.getElementById('inp-length')?.closest('.input-group');
                         if (lenGroup) {
                             const lbl = lenGroup.querySelector('label');
-                            if (lbl) lbl.textContent = isGates ? 'Gate Length (in)' : 'Total Length (in)';
+                            if (lbl) lbl.textContent = isGates ? "Gate Length (ft'-in)" : "Total Length (ft'-in)";
                         }
                         const fhGroup = document.getElementById('inp-fenceHeight')?.closest('.input-group');
                         if (fhGroup) {
@@ -4844,7 +4844,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function generateNumInput(label, id, def) {
         let cleanLabel = label;
-        if (cleanLabel.endsWith('(in)')) {
+        if (cleanLabel.includes('Total Length') || cleanLabel.includes('Gate Length') || id === 'length') {
+            cleanLabel = cleanLabel.replace(/\s*\([^)]*\)/, '').trim() + " (ft'-in)";
+        } else if (cleanLabel.endsWith('(in)')) {
             cleanLabel = cleanLabel.replace('(in)', '(ft-in / in)');
         }
         return `<div class="input-group">
