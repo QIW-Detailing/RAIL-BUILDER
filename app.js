@@ -7246,7 +7246,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return new Promise((resolve, reject) => {
             const { jsPDF } = window.jspdf;
             const modelToDraw = customModelOverride || currentModel;
-            const doc = new jsPDF('landscape', 'mm', 'a4', true); // A4 landscape: 297mm x 210mm
+            const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: [279.4, 431.8], compress: true }); // 11x17 landscape: 431.8mm x 279.4mm
             const cat = shapeCategory.value;
             let desc = cat ? cat.toUpperCase() : "Drawing";
             let sectionCutPdfX = null;
@@ -7503,27 +7503,26 @@ document.addEventListener('DOMContentLoaded', () => {
             let marginBottom = 22;
             let uniqueLeaders = [];
 
-            // Page boundaries
+            // Page boundaries (11x17 Landscape: 431.8mm x 279.4mm)
             const pageXMin = 7;
-            const pageXMax = 199;
+            const pageXMax = 333.8;
             const pageYMin = 7;
-            const pageYMax = 175;
+            const pageYMax = 244.4;
 
-            // Max allowed drawing viewport width and height to prevent clashing with BOM (starts at 199)
-            // Left margin of 22mm, Right margin of 12mm. Center of Left Area is 103mm.
-            // Drawing is centered inside X: [29, 171], so max width is 142mm.
-            let availW = 142;
+            // Max allowed drawing viewport width and height to prevent clashing with BOM (starts at 333.8)
+            // Left margin of 22mm, Right margin of 12mm.
+            let availW = 280;
             let availH;
 
             if (hasTopDetails) {
-                // Top detail box ends at Y = 58. Available Y space is Y: [58, 175] (height = 117mm).
+                // Top detail box ends at Y = 58. Available Y space is Y: [58, 244.4].
                 const detailMarginTop = 12;
                 const detailMarginBottom = 16;
-                availH = (pageYMax - 58) - (detailMarginTop + detailMarginBottom); // 117 - 28 = 89mm
+                availH = (pageYMax - 58) - (detailMarginTop + detailMarginBottom);
                 marginTop = detailMarginTop;
                 marginBottom = detailMarginBottom;
             } else {
-                availH = (pageYMax - pageYMin) - (marginTop + marginBottom); // 168 - 44 = 124mm
+                availH = (pageYMax - pageYMin) - (marginTop + marginBottom);
             }
 
             if (isLoosePost) {
@@ -7826,10 +7825,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     tempPdfX = 7 + (isReturn ? 28 : 5) + leftMarginNeeded;
                 } else {
                     // fullWidth
-                    tempPdfX = (297 - w_mm) / 2;
+                    tempPdfX = (431.8 - w_mm) / 2;
                     const rightDimSpan = (compDims ? 23.0 : 33.0) + 3.0;
-                    if (tempPdfX + w_mm + rightDimSpan > 287.0) {
-                        tempPdfX = 287.0 - w_mm - rightDimSpan;
+                    if (tempPdfX + w_mm + rightDimSpan > 421.0) {
+                        tempPdfX = 421.0 - w_mm - rightDimSpan;
                     }
                     if (tempPdfX < 21.0) {
                         tempPdfX = 21.0;
@@ -7838,15 +7837,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // Determine pdfY
                 const eff_upperY = Math.max(38, upperBoundaryY);
-                const remainingYSpace = (175 - eff_upperY) - (h_mm + tempMarginTop + tempMarginBottom);
+                const remainingYSpace = (244.4 - eff_upperY) - (h_mm + tempMarginTop + tempMarginBottom);
                 const isRetPanel = (activePanelType === 'leftReturn' || activePanelType === 'rightReturn');
-                const maxDimY = isRetPanel ? 158.0 : 163.0;
+                const maxDimY = isRetPanel ? 227.0 : 232.0;
                 const maxExtra = Math.max(0, maxDimY - (eff_upperY + tempMarginTop + h_mm + tempDimOffsetBottom));
                 const extraSpace = Math.min(Math.max(0, remainingYSpace / 2), maxExtra);
                 const tempPdfY = eff_upperY + tempMarginTop + extraSpace;
 
-                // Check horizontal borders (left: 7.0, right: 290.0)
-                if (tempPdfX < 7.0 || tempPdfX + w_mm > 290.0) {
+                // Check horizontal borders (left: 7.0, right: 424.8)
+                if (tempPdfX < 7.0 || tempPdfX + w_mm > 424.8) {
                     return false;
                 }
 
@@ -7856,9 +7855,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
 
                 // Check BOM box collision
-                // BOM box is in range X: [199.0, 290.0], Y: [7.0, bomBottomY]
+                // BOM box is in range X: [333.8, 424.8], Y: [7.0, bomBottomY]
                 const bomBottomY_local = 18 + predictedBomCount * 4.5;
-                const hasHorizontalOverlap = (tempPdfX + w_mm > 199.0) && (tempPdfX < 290.0);
+                const hasHorizontalOverlap = (tempPdfX + w_mm > 333.8) && (tempPdfX < 424.8);
                 if (hasHorizontalOverlap) {
                     // Top of annotations is tempPdfY - 33
                     if (tempPdfY - 33 < bomBottomY_local) {
@@ -7885,9 +7884,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     const w_mm = s.ratio * cadWidth * 25.4;
                     const h_mm = s.ratio * cadHeight * 25.4;
 
-                    // 1. Check if it fits in Left-Area-Only layout (vertical padding: 59mm, horizontal: 50mm)
-                    const leftAvailW = 142;
-                    const leftAvailH = hasTopDetails ? ((175 - 58) - 59) : ((175 - 7) - 59);
+                    // 1. Check if it fits in Left-Area-Only layout
+                    const leftAvailW = 280;
+                    const leftAvailH = hasTopDetails ? ((244.4 - 58) - 59) : ((244.4 - 7) - 59);
                     const allowLeftArea = (vals.length || 120) <= 96; // Only allow leftArea for short panels (<= 8ft) so main panels auto-scale to 1/2" = 1'-0"
 
                     if (allowLeftArea && w_mm <= leftAvailW && h_mm <= leftAvailH) {
@@ -7901,8 +7900,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
 
                     // 2. Check if it fits in Full-Width layout with standard dimensions (vertical padding: 35mm)
-                    const fullAvailW = 236; // 236mm max drawing width: 12'-16' panels auto-select 1/2"=1'-0", longer panels auto-step down
-                    const fullAvailH_std = (175 - upperBoundaryY) - 35;
+                    const fullAvailW = 350;
+                    const fullAvailH_std = (244.4 - upperBoundaryY) - 35;
 
                     if (w_mm <= fullAvailW && h_mm <= fullAvailH_std) {
                         if (isValidLayout(s, 'fullWidth', false)) {
@@ -7915,7 +7914,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
 
                     // 3. Check if it fits in Full-Width layout with compressed dimensions (vertical padding: 25mm)
-                    const fullAvailH_comp = (175 - upperBoundaryY) - 25;
+                    const fullAvailH_comp = (244.4 - upperBoundaryY) - 25;
 
                     if (w_mm <= fullAvailW && h_mm <= fullAvailH_comp) {
                         if (isValidLayout(s, 'fullWidth', true)) {
@@ -7930,11 +7929,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     // 4. Check if it fits to the left of the BOM (leftAligned layout)
                     const isReturn = (activePanelType === 'leftReturn' || activePanelType === 'rightReturn');
                     const leftExt = 7 + (isReturn ? 28 : 5);
-                    const rightExt = 196 - (isReturn ? 5 : 24);
+                    const rightExt = 330 - (isReturn ? 5 : 24);
                     const availW_left = rightExt - leftExt;
                     const eff_upperBoundaryY = hasTopDetails ? 58 : 7;
                     
-                    const availH_left_std = (175 - eff_upperBoundaryY) - 59;
+                    const availH_left_std = (244.4 - eff_upperBoundaryY) - 59;
                     if (w_mm <= availW_left && h_mm <= availH_left_std) {
                         if (isValidLayout(s, 'leftAligned', false)) {
                             selectedScale = s;
@@ -7945,7 +7944,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     }
 
-                    const availH_left_comp = (175 - eff_upperBoundaryY) - 40;
+                    const availH_left_comp = (244.4 - eff_upperBoundaryY) - 40;
                     if (w_mm <= availW_left && h_mm <= availH_left_comp) {
                         if (isValidLayout(s, 'leftAligned', true)) {
                             selectedScale = s;
@@ -8010,16 +8009,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Calculate temp pdfY with maxExtra clamping to preserve drawing position safely clear of bottom title text
                     let tempPdfY;
                     const eff_upperY = Math.max(38, upperBoundaryY);
-                    const remainingYSpace = (175 - eff_upperY) - (tempDrawH + tempMarginTop + tempMarginBottom);
+                    const remainingYSpace = (244.4 - eff_upperY) - (tempDrawH + tempMarginTop + tempMarginBottom);
                     const isRetPanel = (activePanelType === 'leftReturn' || activePanelType === 'rightReturn');
-                    const maxDimY = isRetPanel ? 158.0 : 163.0;
+                    const maxDimY = isRetPanel ? 227.0 : 232.0;
                     const maxExtra = Math.max(0, maxDimY - (eff_upperY + tempMarginTop + tempDrawH + tempDimOffsetBottom));
                     const extraSpace = Math.min(Math.max(0, remainingYSpace / 2), maxExtra);
                     tempPdfY = eff_upperY + tempMarginTop + extraSpace;
 
                     const tempDimLineY = tempPdfY + tempDrawH + tempDimOffsetBottom;
                     
-                    // If bottom dimension line is safely clear of Y = 171.5 label text, break.
+                    // If bottom dimension line is safely clear of Y = 240.5 label text, break.
                     if (tempDimLineY <= maxDimY) {
                         break;
                     }
@@ -8090,7 +8089,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const hasLeftDetails = (vals.includeBasePlates === 'yes') || isMeshStyle;
             const minLeftX = hasLeftDetails ? 57.0 : 8.0;
-            const maxRightX = 200.0;
+            const maxRightX = 333.8;
 
             const isLeftRet = (activePanelType === 'leftReturn');
             const leftMarginNeeded = isLeftRet ? 28.0 : 12.0;
@@ -8099,10 +8098,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const boundedLeft = minLeftX + leftMarginNeeded;
             const boundedRight = maxRightX - rightMarginNeeded - drawW;
 
-            let pdfX = (297 - drawW) / 2;
+            let pdfX = (431.8 - drawW) / 2;
             const rightDimSpan = (useCompressedDims ? 23.0 : 33.0) + 3.0;
-            if (pdfX + drawW + rightDimSpan > 287.0) {
-                pdfX = 287.0 - drawW - rightDimSpan;
+            if (pdfX + drawW + rightDimSpan > 421.0) {
+                pdfX = 421.0 - drawW - rightDimSpan;
             }
             if (pdfX < 21.0) {
                 pdfX = 21.0;
@@ -8111,12 +8110,12 @@ document.addEventListener('DOMContentLoaded', () => {
             let pdfY;
             const eff_upperY = Math.max(38, upperBoundaryY);
             if (isLoosePost) {
-                const availYSpace = (152.0 - eff_upperY) - drawH;
+                const availYSpace = (220.0 - eff_upperY) - drawH;
                 pdfY = eff_upperY + Math.max(8, availYSpace / 2);
             } else {
-                const remainingYSpace = (175 - eff_upperY) - (drawH + marginTop + marginBottom);
+                const remainingYSpace = (244.4 - eff_upperY) - (drawH + marginTop + marginBottom);
                 const isRetPanel = (activePanelType === 'leftReturn' || activePanelType === 'rightReturn');
-                const maxDimY = isRetPanel ? 158.0 : 163.0;
+                const maxDimY = isRetPanel ? 227.0 : 232.0;
                 const maxExtra = Math.max(0, maxDimY - (eff_upperY + marginTop + drawH + dimOffsetBottom));
                 const extraSpace = Math.min(Math.max(0, remainingYSpace / 2), maxExtra);
                 pdfY = eff_upperY + marginTop + extraSpace;
@@ -8298,18 +8297,18 @@ document.addEventListener('DOMContentLoaded', () => {
             // --- DRAW BORDERS ---
             doc.setDrawColor(0, 0, 0);
             doc.setLineWidth(0.5);
-            doc.rect(5, 5, 287, 200, 'S'); // Outer border
+            doc.rect(5, 5, 421.8, 269.4, 'S'); // Outer border: 431.8 - 10 = 421.8, 279.4 - 10 = 269.4
             doc.setLineWidth(0.2);
-            doc.rect(7, 7, 283, 196, 'S'); // Inner border
+            doc.rect(7, 7, 417.8, 265.4, 'S'); // Inner border: 431.8 - 14 = 417.8, 279.4 - 14 = 265.4
             
             // Top Tab for Quality Ironworks
             doc.setFillColor(255, 255, 255);
             doc.setLineWidth(0.2);
-            doc.roundedRect(128, 5.5, 41, 4.5, 2, 2, 'FD');
+            doc.roundedRect(195.4, 5.5, 41, 4.5, 2, 2, 'FD');
             doc.setTextColor(0, 0, 0);
             doc.setFontSize(5.5);
             doc.setFont('helvetica', 'normal');
-            doc.text("Quality Ironworks, Inc.", 148.5, 9, { align: "center" });
+            doc.text("Quality Ironworks, Inc.", 215.9, 9, { align: "center" });
 
             // Input values are already resolved at the start of the function
 
@@ -11226,7 +11225,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             
             // Horizontal divider above bottom blocks
-            doc.line(7, 175, 290, 175);
+            doc.line(7, 244.4, 424.8, 244.4);
 
             function formatFeetInches(val) {
                 if (typeof val !== 'number' || isNaN(val)) return '0"';
@@ -11458,7 +11457,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     px = -dy / len;
                     py = dx / len;
                     
-                    // Clamp offset to keep dimension lines inside borders [9.5, 287.5]
+                    // Clamp offset to keep dimension lines inside borders [9.5, 421.5]
                     if (Math.abs(px) > 0.01) {
                         let d1_x = p1[0] + px * finalOffsetMm;
                         let d2_x = p2[0] + px * finalOffsetMm;
@@ -11468,8 +11467,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                         d1_x = p1[0] + px * finalOffsetMm;
                         d2_x = p2[0] + px * finalOffsetMm;
-                        if (d1_x > 287.5 || d2_x > 287.5) {
-                            const excess = Math.max(d1_x, d2_x) - 287.5;
+                        if (d1_x > 421.5 || d2_x > 421.5) {
+                            const excess = Math.max(d1_x, d2_x) - 421.5;
                             finalOffsetMm -= excess / px;
                         }
                     }
@@ -11691,11 +11690,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     clampedLabelX = Math.max(9.3 + textWidth, clampedLabelX);
                 } else if (actualAlign === "right") {
                     // Right-side leader: text is on the right, goes from clampedLabelX + 0.8 to clampedLabelX + 0.8 + textWidth.
-                    // Must stay to the left of BOM table (176mm), or right border (287.5mm) in fullWidth mode, returns, or below BOM (Y >= 50)
-                    let rightLimit = 176.0;
+                    // Must stay to the left of BOM table (310mm), or right border (421.0mm) in fullWidth mode, returns, or below BOM (Y >= 50)
+                    let rightLimit = 310.0;
                     const isReturn = (activePanelType === 'leftReturn' || activePanelType === 'rightReturn');
                     if (layoutMode === 'fullWidth' || isReturn || finalLabelY >= 50.0) {
-                        rightLimit = 287.0;
+                        rightLimit = 421.0;
                     }
                     clampedLabelX = Math.min(rightLimit - textWidth, clampedLabelX);
                 }
@@ -11717,7 +11716,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
                 // Clamp to keep strictly inside the page borders
-                if (finalLabelY > 171) finalLabelY = 171;
+                if (finalLabelY > 238) finalLabelY = 238;
                 if (finalLabelY < 10) finalLabelY = 10;
                 placedPdfLeaders.push({ x: clampedLabelX, y: finalLabelY });
 
@@ -13327,7 +13326,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             // --- A. DRAW BOM BOX ---
-            const bomX = 199, bomY = 7, bomW = 91;
+            const bomX = 333.8, bomY = 7, bomW = 91;
             
             // Column widths: Qty (6), Mark (12), Desc (24), Len (10), Steel (9), Finish (9), Remark (14), Weight (7)
             const colW = [6, 12, 24, 10, 9, 9, 14, 7];
@@ -13337,7 +13336,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 colX.push(tempX);
                 tempX += colW[i];
             }
-            colX.push(tempX); // 290
+            colX.push(tempX); // 424.8
             
             // Header Row (BILL OF MATERIAL)
             doc.rect(bomX, bomY, bomW, 6, 'S');
@@ -13475,12 +13474,12 @@ document.addEventListener('DOMContentLoaded', () => {
             // Draw Straight Items
             if (straightItems.length > 0) {
                 straightItems.forEach(item => {
-                    if (currentY < 175) drawRow(item);
+                    if (currentY < 240) drawRow(item);
                 });
             }
             
             // Draw Bent Items Divider & Items
-            if (bentItems.length > 0 && currentY < 175) {
+            if (bentItems.length > 0 && currentY < 240) {
                 doc.rect(bomX, currentY, bomW, 4.5, 'S');
                 doc.setFont('helvetica', 'normal');
                 doc.setFontSize(4.8);
@@ -13488,7 +13487,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 currentY += 4.5;
                 
                 bentItems.forEach(item => {
-                    if (currentY < 175) drawRow(item);
+                    if (currentY < 240) drawRow(item);
                 });
             }
             
@@ -13515,7 +13514,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Determine whether to place details on the left margin or right margin
                 // based on where there is more empty horizontal space relative to the main drawing.
                 const leftSpace = pdfX - 9;
-                const rightSpace = 198 - (pdfX + drawW);
+                const rightSpace = 332 - (pdfX + drawW);
                 const isReturn = (activePanelType === 'leftReturn' || activePanelType === 'rightReturn');
                 const placeOnLeft = isReturn || isLoosePost || (leftSpace > rightSpace);
                 
@@ -13607,25 +13606,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 const scaleText = scaleLabelText;
                 
                 const mmCenterX = pdfX + drawW / 2;
-                let mmCenterY = 171.0;
-                let scaleCenterY = 174.0;
+                let mmCenterY = 240.5;
+                let scaleCenterY = 243.0;
                 const dimLineY = pdfY + drawH + dimOffsetBottom;
-                if (dimLineY + 7.0 > 171.0) {
+                if (dimLineY + 7.0 > 240.5) {
                     mmCenterY = dimLineY + 7.0;
                     scaleCenterY = mmCenterY + 2.5;
                 }
-                // Ensure scale label does not cross the bottom title block boundary starting at 175.0 mm.
-                // We keep scaleCenterY at most 174.0 (leaving 1.0mm safe margin) and mmCenterY at most 171.5.
-                if (scaleCenterY > 174.0) {
-                    scaleCenterY = 174.0;
-                    mmCenterY = scaleCenterY - 2.5; // 171.5
+                // Ensure scale label does not cross the bottom title block boundary starting at 244.4 mm.
+                // We keep scaleCenterY at most 243.0 (leaving 1.4mm safe margin) and mmCenterY at most 240.5.
+                if (scaleCenterY > 243.0) {
+                    scaleCenterY = 243.0;
+                    mmCenterY = scaleCenterY - 2.5; // 240.5
                 }
                 
-                // If field note box is present on the left (ends at X = 95), keep main mark text clear of it
+                // If field note box is present on the left (ends at X = 102), keep main mark text clear of it
                 const isMainPanelSheetType = (activePanelType === 'main' || (typeof panelType !== 'undefined' && panelType === 'main'));
                 const isReturnPanelSheetType = (activePanelType === 'leftReturn' || activePanelType === 'rightReturn' || (typeof panelType !== 'undefined' && (panelType === 'leftReturn' || panelType === 'rightReturn')));
-                if ((isMainPanelSheetType || isReturnPanelSheetType) && mmCenterX < 105.0) {
-                    mmCenterX = 105.0;
+                if ((isMainPanelSheetType || isReturnPanelSheetType) && mmCenterX < 112.0) {
+                    mmCenterX = 112.0;
                 }
 
                 doc.text(mmText, mmCenterX, mmCenterY, { align: "center" });
@@ -13635,8 +13634,8 @@ document.addEventListener('DOMContentLoaded', () => {
             };
             drawMainMarkLabel();
 
-            // --- DRAW BOTTOM TITLE BLOCKS (y = 175 to 203, height = 28mm) ---
-            const blockY = 175;
+            // --- DRAW BOTTOM TITLE BLOCKS (y = 244.4 to 272.4, height = 28mm) ---
+            const blockY = 244.4;
 
             // --- DRAW 6" FIELD USE NOTE BOX (MAIN & RETURN PANELS) ---
             const isMainPanel = (activePanelType === 'main' || (typeof panelType !== 'undefined' && panelType === 'main'));
@@ -13644,8 +13643,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (isMainPanel || isReturnPanel) {
                 const fNoteBoxX = 7.0;
-                const fNoteBoxW = 88.0;
-                const fNoteBoxY = blockY - 6.0; // 169.0 mm
+                const fNoteBoxW = 95.0;
+                const fNoteBoxY = blockY - 6.0; // 238.4 mm
                 const fNoteBoxH = 6.0;
 
                 doc.setLineWidth(0.35);
@@ -13696,9 +13695,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             // --- DRAW GENERAL NOTE BOX (SNAP 3 STYLE) ---
-            const noteBoxX = 202.5;
-            const noteBoxW = 87.5; // Spans right title block (Job No, Fab No, Drawn By section)
-            const noteBoxY = blockY - 6.0;
+            const noteBoxX = 328.0;
+            const noteBoxW = 96.8; // Spans right title block (Drawing Details, Fab No, Sheet No section: 328 to 424.8)
+            const noteBoxY = blockY - 6.0; // 238.4 mm
             const noteBoxH = 6.0;
             doc.setLineWidth(0.35);
             doc.setDrawColor(0, 0, 0);
@@ -13706,44 +13705,42 @@ document.addEventListener('DOMContentLoaded', () => {
             doc.setFont('helvetica', 'bold');
             doc.setFontSize(7.5);
             doc.text("NOTE: ALL MATERIAL ON CENTER U.N.O.", noteBoxX + noteBoxW / 2, noteBoxY + 4.2, { align: "center" });
-            
 
-
-            // Notice / Logo Cell
-            doc.roundedRect(7, blockY, 67, 28, 1, 1, 'S');
-            // Drawing Log Cell
-            doc.roundedRect(75.5, blockY, 69, 28, 1, 1, 'S');
-            // Project Info Cell
-            doc.roundedRect(146, blockY, 84, 28, 1, 1, 'S');
-            // Drawing Details Cell
-            doc.roundedRect(231.5, blockY, 34, 28, 1, 1, 'S');
-            // Fabrication/Sheet Cells
-            doc.roundedRect(267, blockY, 23, 13.25, 1, 1, 'S'); // Fab
-            doc.roundedRect(267, blockY + 14.75, 23, 13.25, 1, 1, 'S'); // Sheet
+            // Notice / Logo Cell: 7.0 to 87.0 (W = 80.0)
+            doc.roundedRect(7, blockY, 80, 28, 1, 1, 'S');
+            // Drawing Log Cell: 89.0 to 189.0 (W = 100.0)
+            doc.roundedRect(89, blockY, 100, 28, 1, 1, 'S');
+            // Project Info Cell: 191.0 to 326.0 (W = 135.0)
+            doc.roundedRect(191, blockY, 135, 28, 1, 1, 'S');
+            // Drawing Details Cell: 328.0 to 383.0 (W = 55.0)
+            doc.roundedRect(328, blockY, 55, 28, 1, 1, 'S');
+            // Fabrication/Sheet Cells: 385.0 to 424.8 (W = 39.8)
+            doc.roundedRect(385, blockY, 39.8, 13.25, 1, 1, 'S'); // Fab
+            doc.roundedRect(385, blockY + 14.75, 39.8, 13.25, 1, 1, 'S'); // Sheet
 
             // 1. Notice / Logo Cell Details
             if (typeof qiwLogoBase64 !== 'undefined') {
-                doc.addImage(qiwLogoBase64, 'PNG', 12, blockY + 1.5, 58, 10);
+                doc.addImage(qiwLogoBase64, 'PNG', 18, blockY + 1.5, 58, 10);
             }
             
-            doc.rect(8.5, blockY + 14.5, 64, 12, 'S');
+            doc.rect(8.5, blockY + 14.5, 77, 12, 'S');
             doc.setFontSize(3.2);
             doc.setFont('helvetica', 'normal');
             const noticeText = "NOTICE: THIS DOCUMENT IS THE PROPERTY OF QUALITY IRONWORKS. NEITHER THIS DOCUMENT NOR ANY DATA OR INFORMATION HEREIN SHALL BE COPIED OR REPRODUCED IN ANY MANNER, LOANED, DISPOSED OF, OR USED FOR ANY PURPOSE WHATSOEVER, WITHOUT THE PRIOR WRITTEN CONSENT. THE BORROWER, IN CONSIDERATION OF SUCH LOAN, AGREES TO THE FOREGOING CONDITIONS AND TO RETURN THIS DOCUMENT ON REQUEST OR UPON COMPLETION OF THE SPECIFICALLY AUTHORIZED WORK FOR WHICH IT WAS USED.";
-            doc.text(noticeText, 10, blockY + 16, { maxWidth: 61, align: "justify" });
+            doc.text(noticeText, 10, blockY + 16, { maxWidth: 74, align: "justify" });
 
             // 2. Drawing Log / Revision Table Details
-            doc.line(75.5, blockY + 4.5, 144.5, blockY + 4.5);
+            doc.line(89, blockY + 4.5, 189, blockY + 4.5);
             doc.setFont('helvetica', 'bold');
             doc.setFontSize(5);
-            doc.text("NO.", 78, blockY + 3, { align: "center" });
-            doc.text("DATE", 88, blockY + 3, { align: "center" });
-            doc.text("DRAWING LOG", 115, blockY + 3, { align: "center" });
-            doc.text("BY", 140, blockY + 3, { align: "center" });
+            doc.text("NO.", 92.5, blockY + 3, { align: "center" });
+            doc.text("DATE", 106, blockY + 3, { align: "center" });
+            doc.text("DRAWING LOG", 146.5, blockY + 3, { align: "center" });
+            doc.text("BY", 183, blockY + 3, { align: "center" });
             
-            doc.line(81, blockY, 81, blockY + 28);
-            doc.line(95, blockY, 95, blockY + 28);
-            doc.line(136.5, blockY, 136.5, blockY + 28);
+            doc.line(96, blockY, 96, blockY + 28);
+            doc.line(116, blockY, 116, blockY + 28);
+            doc.line(177, blockY, 177, blockY + 28);
             
             const revRowY = blockY + 4.5;
             doc.setFont('helvetica', 'normal');
@@ -13753,71 +13750,71 @@ document.addEventListener('DOMContentLoaded', () => {
             const revDesc = document.getElementById('exp-drawingLog') ? document.getElementById('exp-drawingLog').value.trim() : (isNumerical ? "FOR FABRICATION" : "FOR APPROVAL");
             const today = new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
             
-            doc.text(revision, 78, revRowY + 3, { align: "center" });
-            doc.text(today, 88, revRowY + 3, { align: "center" });
-            doc.text(revDesc, 97.5, revRowY + 3, { align: "left" });
-            doc.text(drawnBy, 140, revRowY + 3, { align: "center" });
+            doc.text(revision, 92.5, revRowY + 3, { align: "center" });
+            doc.text(today, 106, revRowY + 3, { align: "center" });
+            doc.text(revDesc, 118, revRowY + 3, { align: "left" });
+            doc.text(drawnBy, 183, revRowY + 3, { align: "center" });
             
-            doc.line(75.5, revRowY, 144.5, revRowY);
-            doc.line(75.5, revRowY + 4.5, 144.5, revRowY + 4.5);
-            doc.line(75.5, revRowY + 9.0, 144.5, revRowY + 9.0);
-            doc.line(75.5, revRowY + 13.5, 144.5, revRowY + 13.5);
-            doc.line(75.5, revRowY + 18.0, 144.5, revRowY + 18.0);
-            doc.line(75.5, revRowY + 22.5, 144.5, revRowY + 22.5);
+            doc.line(89, revRowY, 189, revRowY);
+            doc.line(89, revRowY + 4.5, 189, revRowY + 4.5);
+            doc.line(89, revRowY + 9.0, 189, revRowY + 9.0);
+            doc.line(89, revRowY + 13.5, 189, revRowY + 13.5);
+            doc.line(89, revRowY + 18.0, 189, revRowY + 18.0);
+            doc.line(89, revRowY + 22.5, 189, revRowY + 22.5);
 
             // 3. Project Info Details
-            doc.line(146, blockY + 5.6, 230, blockY + 5.6);
-            doc.line(146, blockY + 11.2, 230, blockY + 11.2);
-            doc.line(146, blockY + 16.8, 230, blockY + 16.8);
-            doc.line(146, blockY + 22.4, 230, blockY + 22.4);
+            doc.line(191, blockY + 5.6, 326, blockY + 5.6);
+            doc.line(191, blockY + 11.2, 326, blockY + 11.2);
+            doc.line(191, blockY + 16.8, 326, blockY + 16.8);
+            doc.line(191, blockY + 22.4, 326, blockY + 22.4);
             
             doc.setFont('helvetica', 'bold');
             doc.setFontSize(5);
-            doc.text("JOB NAME :", 148.5, blockY + 4.0);
-            doc.text("ADDRESS :", 148.5, blockY + 9.6);
-            doc.text("CITY/STATE :", 148.5, blockY + 15.2);
-            doc.text("GC :", 148.5, blockY + 20.8);
-            doc.text("DESCRIPTION :", 148.5, blockY + 26.4);
+            doc.text("JOB NAME :", 193.5, blockY + 4.0);
+            doc.text("ADDRESS :", 193.5, blockY + 9.6);
+            doc.text("CITY/STATE :", 193.5, blockY + 15.2);
+            doc.text("GC :", 193.5, blockY + 20.8);
+            doc.text("DESCRIPTION :", 193.5, blockY + 26.4);
             
             doc.setFont('helvetica', 'normal');
             doc.setFontSize(6);
-            doc.text(jobName.toUpperCase(), 169.5, blockY + 4.0);
-            doc.text(address.toUpperCase(), 169.5, blockY + 9.6);
-            doc.text(cityState.toUpperCase(), 169.5, blockY + 15.2);
-            doc.text(gc.toUpperCase(), 169.5, blockY + 20.8);
+            doc.text(jobName.toUpperCase(), 220, blockY + 4.0);
+            doc.text(address.toUpperCase(), 220, blockY + 9.6);
+            doc.text(cityState.toUpperCase(), 220, blockY + 15.2);
+            doc.text(gc.toUpperCase(), 220, blockY + 20.8);
             
             let titleDesc = document.getElementById('exp-description') ? document.getElementById('exp-description').value.trim().toUpperCase() : "GUARDRAIL DETAILS";
-            doc.text(titleDesc, 169.5, blockY + 26.4);
+            doc.text(titleDesc, 220, blockY + 26.4);
 
             // 4. Drawing Details Details
-            doc.line(231.5, blockY + 7.0, 265.5, blockY + 7.0);
-            doc.line(231.5, blockY + 14.0, 265.5, blockY + 14.0);
-            doc.line(231.5, blockY + 21.0, 265.5, blockY + 21.0);
+            doc.line(328, blockY + 7.0, 383, blockY + 7.0);
+            doc.line(328, blockY + 14.0, 383, blockY + 14.0);
+            doc.line(328, blockY + 21.0, 383, blockY + 21.0);
             
             doc.setFont('helvetica', 'bold');
             doc.setFontSize(5.5);
-            doc.text("JOB NUMBER:", 233.5, blockY + 4.5);
-            doc.text("DRAWN BY:", 233.5, blockY + 11.5);
-            doc.text("CHECKED BY:", 233.5, blockY + 18.5);
-            doc.text("DATE:", 233.5, blockY + 25.5);
+            doc.text("JOB NUMBER:", 330.5, blockY + 4.5);
+            doc.text("DRAWN BY:", 330.5, blockY + 11.5);
+            doc.text("CHECKED BY:", 330.5, blockY + 18.5);
+            doc.text("DATE:", 330.5, blockY + 25.5);
             
             doc.setFont('helvetica', 'normal');
             doc.setFontSize(6.5);
-            doc.text(jobNo.toUpperCase(), 251.5, blockY + 4.5);
-            doc.text(drawnBy.toUpperCase(), 251.5, blockY + 11.5);
-            doc.text(checkedBy.toUpperCase(), 251.5, blockY + 18.5);
-            doc.text(today, 251.5, blockY + 25.5);
+            doc.text(jobNo.toUpperCase(), 356.5, blockY + 4.5);
+            doc.text(drawnBy.toUpperCase(), 356.5, blockY + 11.5);
+            doc.text(checkedBy.toUpperCase(), 356.5, blockY + 18.5);
+            doc.text(today, 356.5, blockY + 25.5);
 
             // 5. Fabrication & Sheet Details
             doc.setFont('helvetica', 'bold');
             doc.setFontSize(4);
-            doc.text("FAB NUMBER:", 268.5, blockY + 3.5);
-            doc.text("SHEET NUMBER:", 268.5, blockY + 18.25);
+            doc.text("FAB NUMBER:", 387, blockY + 3.5);
+            doc.text("SHEET NUMBER:", 387, blockY + 18.25);
             
             doc.setFontSize(14);
             doc.setFont('helvetica', 'bold');
-            doc.text(fabNo.toUpperCase(), 278.5, blockY + 10.5, { align: "center" });
-            doc.text(drawingNo.toUpperCase(), 278.5, blockY + 25.25, { align: "center" });
+            doc.text(fabNo.toUpperCase(), 404.9, blockY + 10.5, { align: "center" });
+            doc.text(drawingNo.toUpperCase(), 404.9, blockY + 25.25, { align: "center" });
 
             if (isPreviewOnly) {
                 const blob = doc.output('blob');
