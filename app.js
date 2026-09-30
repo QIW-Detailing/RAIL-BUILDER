@@ -13621,6 +13621,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     mmCenterY = scaleCenterY - 2.5; // 171.5
                 }
                 
+                // If field note box is present on the left (ends at X = 95), keep main mark text clear of it
+                const isMainPanelSheetType = (activePanelType === 'main' || (typeof panelType !== 'undefined' && panelType === 'main'));
+                const isReturnPanelSheetType = (activePanelType === 'leftReturn' || activePanelType === 'rightReturn' || (typeof panelType !== 'undefined' && (panelType === 'leftReturn' || panelType === 'rightReturn')));
+                if ((isMainPanelSheetType || isReturnPanelSheetType) && mmCenterX < 105.0) {
+                    mmCenterX = 105.0;
+                }
+
                 doc.text(mmText, mmCenterX, mmCenterY, { align: "center" });
                 doc.setFont('helvetica', 'normal');
                 doc.setFontSize(6.5);
@@ -13630,6 +13637,63 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // --- DRAW BOTTOM TITLE BLOCKS (y = 175 to 203, height = 28mm) ---
             const blockY = 175;
+
+            // --- DRAW 6" FIELD USE NOTE BOX (MAIN & RETURN PANELS) ---
+            const isMainPanel = (activePanelType === 'main' || (typeof panelType !== 'undefined' && panelType === 'main'));
+            const isReturnPanel = (activePanelType === 'leftReturn' || activePanelType === 'rightReturn' || (typeof panelType !== 'undefined' && (panelType === 'leftReturn' || panelType === 'rightReturn')));
+
+            if (isMainPanel || isReturnPanel) {
+                const fNoteBoxX = 7.0;
+                const fNoteBoxW = 88.0;
+                const fNoteBoxY = blockY - 6.0; // 169.0 mm
+                const fNoteBoxH = 6.0;
+
+                doc.setLineWidth(0.35);
+                doc.setDrawColor(0, 0, 0);
+                doc.rect(fNoteBoxX, fNoteBoxY, fNoteBoxW, fNoteBoxH, 'S');
+
+                const fieldNoteText = isMainPanel
+                    ? 'NOTE : 6" EXTRA ADDED ON EACH SIDE FOR FIELD USE'
+                    : 'NOTE : 6" EXTRA ADDED FOR FIELD USE';
+
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(4.8);
+                doc.setTextColor(0, 0, 0);
+
+                const textX = fNoteBoxX + 1.8;
+                const textY = fNoteBoxY + 4.1;
+                doc.text(fieldNoteText, textX, textY, { align: "left" });
+
+                const textW = doc.getTextWidth(fieldNoteText);
+                const boxSize = 2.8;
+                const b1X = textX + textW + 2.0;
+                const b1Y = fNoteBoxY + (fNoteBoxH - boxSize) / 2;
+
+                // YES Box
+                doc.setLineWidth(0.25);
+                doc.rect(b1X, b1Y, boxSize, boxSize, 'S');
+                doc.setFontSize(4.8);
+                doc.text("YES", b1X + boxSize + 1.0, textY, { align: "left" });
+                const yesW = doc.getTextWidth("YES");
+
+                // NO Box
+                const b2X = b1X + boxSize + 1.0 + yesW + 2.0;
+                const b2Y = b1Y;
+                doc.rect(b2X, b2Y, boxSize, boxSize, 'S');
+                doc.text("NO", b2X + boxSize + 1.0, textY, { align: "left" });
+
+                // Tick mark: ✓ in YES if extra6 is true, in NO if false
+                const chk6 = document.getElementById('chk-6-extra');
+                const isExtra6 = !!(vals.extra6 || (chk6 && chk6.checked));
+                const tickBoxX = isExtra6 ? b1X : b2X;
+                const tickBoxY = b1Y;
+
+                doc.setLineWidth(0.45);
+                doc.setDrawColor(0, 0, 0);
+                // Draw checkmark ✓: short down stroke, then long up stroke
+                doc.line(tickBoxX + 0.55, tickBoxY + 1.4, tickBoxX + 1.15, tickBoxY + 2.15);
+                doc.line(tickBoxX + 1.15, tickBoxY + 2.15, tickBoxX + 2.25, tickBoxY + 0.65);
+            }
 
             // --- DRAW GENERAL NOTE BOX (SNAP 3 STYLE) ---
             const noteBoxX = 202.5;
