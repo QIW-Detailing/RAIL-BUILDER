@@ -7756,15 +7756,15 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const boxH = 30; // Shrunk detail box height
-            const bomTableHeight = 11 + predictedBomCount * 4.5;
-            const bomBottomY = 18 + predictedBomCount * 4.5; // with 2mm safety buffer
+            const bomTableHeight = 14 + predictedBomCount * 5.5;
+            const bomBottomY = 21 + predictedBomCount * 5.5; // with 2mm safety buffer
             const detailsBottomY = bomBottomY;
             const hasDetailA = hasTopDetails;
             const hasSectionA = isMeshStyle && !isLoosePost && (activePanelType === 'main');
-            const sectionABottomY = hasDetailA ? 104.0 : 54.0;
-            const sectionATopY = hasDetailA ? 58.0 : 8.0;
+            const sectionABottomY = hasDetailA ? 126.0 : 60.0;
+            const sectionATopY = hasDetailA ? 72.0 : 8.0;
 
-            const eff_upperBoundaryY = (hasSectionA && hasDetailA) ? 104.0 : ((hasSectionA || hasDetailA) ? 60.0 : 25.0);
+            const eff_upperBoundaryY = (hasSectionA && hasDetailA) ? 126.0 : ((hasSectionA || hasDetailA) ? 72.0 : 25.0);
             const upperBoundaryY = Math.max(eff_upperBoundaryY, detailsBottomY + 4.0);
 
             let selectedScale = standardScales[standardScales.length - 1]; // Default to smallest
@@ -7823,7 +7823,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Determine tempPdfX
                 const rightDimSpan = (compDims ? 23.0 : 33.0) + 3.0;
                 const hasLeftDetails = hasDetailA || hasSectionA;
-                const leftSafeX = hasLeftDetails ? 72.0 : 20.0;
+                const leftSafeX = hasLeftDetails ? 76.0 : 20.0;
                 const rightSafeX = 330.0 - rightDimSpan;
                 const bayWidth = rightSafeX - leftSafeX;
 
@@ -7874,27 +7874,27 @@ document.addEventListener('DOMContentLoaded', () => {
                     return false;
                 }
 
-                // 2. Check Detail A collision (top-left: X [8..60], Y [8..56])
+                // 2. Check Detail A collision (top-left: X [8..74], Y [8..70])
                 if (hasDetailA) {
-                    const horizDetailA = (leftAnnX < 62.0) && (tempPdfX + w_mm > 8.0);
-                    const vertDetailA = (topAnnY < 58.0) && (tempPdfY + h_mm > 8.0);
+                    const horizDetailA = (leftAnnX < 76.0) && (tempPdfX + w_mm > 8.0);
+                    const vertDetailA = (topAnnY < 72.0) && (tempPdfY + h_mm > 8.0);
                     if (horizDetailA && vertDetailA) {
                         return false;
                     }
                 }
 
-                // 3. Check Section A collision (left side: X [9..58], Y [sectionATopY..sectionABottomY])
+                // 3. Check Section A collision (left side: X [8..68], Y [sectionATopY..sectionABottomY])
                 if (hasSectionA) {
-                    const horizSectionA = (leftAnnX < 60.0) && (tempPdfX + w_mm > 9.0);
+                    const horizSectionA = (leftAnnX < 70.0) && (tempPdfX + w_mm > 8.0);
                     const vertSectionA = (topAnnY < sectionABottomY) && (tempPdfY + h_mm > sectionATopY);
                     if (horizSectionA && vertSectionA) {
                         return false;
                     }
                 }
 
-                // 4. Check BOM box collision (X: [333.8, 424.8], Y: [7.0, bomBottomY_local])
-                const bomBottomY_local = 18 + predictedBomCount * 4.5;
-                const horizBOM = (rightAnnX > 330.0) && (tempPdfX < 424.8);
+                // 4. Check BOM box collision (X: [277.8, 424.8], Y: [7.0, bomBottomY_local])
+                const bomBottomY_local = 21 + predictedBomCount * 5.5;
+                const horizBOM = (rightAnnX > 274.0) && (tempPdfX < 424.8);
                 const vertBOM = (topAnnY < bomBottomY_local + 4.0);
                 if (horizBOM && vertBOM) {
                     return false;
@@ -8091,7 +8091,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const hasLeftDetails = hasDetailA || hasSectionA;
             const rightDimSpan = (useCompressedDims ? 23.0 : 33.0) + 3.0;
-            const leftSafeX = hasLeftDetails ? 72.0 : 20.0;
+            const leftSafeX = hasLeftDetails ? 76.0 : 20.0;
             const rightSafeX = 330.0 - rightDimSpan;
             const bayWidth = rightSafeX - leftSafeX;
 
@@ -8828,8 +8828,10 @@ document.addEventListener('DOMContentLoaded', () => {
                                   const labelDeltaY = annotationOffsets[`dim-picket-text-${i}`] !== undefined ? annotationOffsets[`dim-picket-text-${i}`] : 0;
                                   const labelY = midPdf[1] + (dimOffset1 * 0.35) + labelDeltaY * pdfScale;
                                   
+                                  const spec = (annotationProperties && annotationProperties[`dim-picket-text-${i}`]) || {};
+                                  const activeFontSize = spec.fontSize !== undefined ? spec.fontSize : customDimFontSize;
                                   doc.setFont('helvetica', 'normal');
-                                  doc.setFontSize(Math.min(2.8, 2.8 * (customDimFontSize / 12.0)));
+                                  doc.setFontSize(6.0 * (activeFontSize / 12.0));
                                   doc.text(labelText, midPdf[0], labelY, { align: "center" });
                               }
 
@@ -9713,8 +9715,8 @@ document.addEventListener('DOMContentLoaded', () => {
                                 if (cleanedText) {
                                     cleanedText = cleanedText.split(/[\s(]/)[0];
                                 }
-                                doc.setFont('helvetica', 'bold');
-                                doc.setFontSize(4.8);
+                                doc.setFont('helvetica', 'normal');
+                                doc.setFontSize(8.5);
                                 const textWidth = doc.getTextWidth(cleanedText);
                                 lead.halfWidth = (textWidth + 6.0) / 2; // W_i / 2
                                 lead.labelX = lead.pdfTargetX;
@@ -10440,10 +10442,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 doc.rect(boxX, boxY, boxW, boxH, 'FD');
 
                 // Main Title
+                let titleText = "DETAIL A - BASE PLATE DETAIL";
+                if (bpc && bpc.pieceMark && bpc.pieceMark.trim() !== "") {
+                    titleText = `DETAIL A - BASE PLATE ${bpc.pieceMark.trim()}`;
+                } else if (bpc && bpc.plateShape === 'qiw_standard') {
+                    const stdMark = bpc.qiwPlateType || 'QBP54';
+                    titleText = `DETAIL A - BASE PLATE ${stdMark}`;
+                } else {
+                    titleText = "DETAIL A - BASE PLATE BP-X";
+                }
+
                 doc.setFont('helvetica', 'bold');
                 doc.setFontSize(5.5);
                 doc.setTextColor(0, 0, 0);
-                doc.text("TYPICAL BASE PLATE DETAILS", boxX + boxW / 2, boxY + 4.5, { align: "center" });
+                doc.text(titleText, boxX + boxW / 2, boxY + 4.5, { align: "center" });
 
                 const isWallMount = (bpc.connectionType === 'wall_mount');
 
@@ -10581,16 +10593,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     doc.line(plateRight - 0.3, dimBotY - 0.3, plateRight + 0.3, dimBotY + 0.3);
 
                     doc.text(halfW_str, (plateLeft + cx) / 2, dimBotY + 3.0, { align: "center" });
-                    doc.text(halfW_str, (cx + plateRight) / 2, dimBotY + 3.0, { align: "center" });
-
-                } else {
-                    // Render plan view - centered horizontally
-                    const cx1 = boxX + boxW / 2;
-                    const cy1 = boxY + boxH / 2 + 1;
+                                        // Render plan view - centered horizontally
+                    const cx1 = boxX + 34.0;
+                    const cy1 = boxY + 29.5;
 
                     doc.setFont('helvetica', 'bold');
-                    doc.setFontSize(4.5);
-                    doc.text("PLAN VIEW", cx1, boxY + 9, { align: "center" });
+                    doc.setFontSize(6.5);
+                    doc.text("PLAN VIEW", cx1, boxY + 10.5, { align: "center" });
 
                 // Walk model geometry for base plate plan view inside box
                 const basePlateModel = createCustomBasePlateModel(bpc);
@@ -10599,7 +10608,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const h = extents.high[1] - extents.low[1];
                 
                 const maxDim = Math.max(w, h, 1);
-                const bpScale = 16 / maxDim; // fits cleanly inside plan view area
+                const bpScale = 20 / maxDim; // fits cleanly inside enlarged plan view area
                 
                 basePlateModel.origin = [-(extents.low[0] + w/2), -(extents.low[1] + h/2)];
 
@@ -10654,7 +10663,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (offX !== 0 || offY !== 0) {
                     doc.setFont('helvetica', 'bold');
-                    doc.setFontSize(3.8);
+                    doc.setFontSize(4.0);
                     doc.setTextColor(0, 0, 0);
                     let offStr = "";
                     if (offX !== 0 && offY !== 0) offStr = `OFFSET: X=${offX}", Y=${offY}"`;
@@ -10663,16 +10672,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     doc.text(offStr, cx1, cy1 - h/2 * bpScale - 2.0, { align: "center" });
                 }
 
-
-
                 // 1. Stacked Horizontal Dimensions (Bottom)
-                const dimY_inner = cy1 + h/2 * bpScale + 3.5;
-                const dimY_outer = cy1 + h/2 * bpScale + 7.5;
+                const dimY_inner = cy1 + h/2 * bpScale + 5.5;
+                const dimY_outer = cy1 + h/2 * bpScale + 10.5;
                 const postCenterDrawX = cx1 + offX * bpScale;
 
                 doc.setLineWidth(0.10);
                 doc.setFont('helvetica', 'normal');
-                doc.setFontSize(3.6);
+                doc.setFontSize(5.6);
 
                 // Inner split segments (left edge -> post center, post center -> right edge)
                 // Line 1: Left edge to post center
@@ -10680,32 +10687,31 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Line 2: Post center to right edge
                 doc.line(postCenterDrawX, dimY_inner, cx1 + w/2 * bpScale, dimY_inner);
                 // Extension lines for inner ticks
-                doc.line(cx1 - w/2 * bpScale, dimY_inner - 0.8, cx1 - w/2 * bpScale, dimY_inner + 0.8);
-                doc.line(postCenterDrawX, dimY_inner - 0.8, postCenterDrawX, dimY_inner + 0.8);
-                doc.line(cx1 + w/2 * bpScale, dimY_inner - 0.8, cx1 + w/2 * bpScale, dimY_inner + 0.8);
+                doc.line(cx1 - w/2 * bpScale, dimY_inner - 1.0, cx1 - w/2 * bpScale, dimY_inner + 1.0);
+                doc.line(postCenterDrawX, dimY_inner - 1.0, postCenterDrawX, dimY_inner + 1.0);
+                doc.line(cx1 + w/2 * bpScale, dimY_inner - 1.0, cx1 + w/2 * bpScale, dimY_inner + 1.0);
                 // Draw diagonal slash ticks
-                doc.line(cx1 - w/2 * bpScale - 0.3, dimY_inner - 0.3, cx1 - w/2 * bpScale + 0.3, dimY_inner + 0.3);
-                doc.line(postCenterDrawX - 0.3, dimY_inner - 0.3, postCenterDrawX + 0.3, dimY_inner + 0.3);
-                doc.line(cx1 + w/2 * bpScale - 0.3, dimY_inner - 0.3, cx1 + w/2 * bpScale + 0.3, dimY_inner + 0.3);
+                doc.line(cx1 - w/2 * bpScale - 0.4, dimY_inner - 0.4, cx1 - w/2 * bpScale + 0.4, dimY_inner + 0.4);
+                doc.line(postCenterDrawX - 0.4, dimY_inner - 0.4, postCenterDrawX + 0.4, dimY_inner + 0.4);
+                doc.line(cx1 + w/2 * bpScale - 0.4, dimY_inner - 0.4, cx1 + w/2 * bpScale + 0.4, dimY_inner + 0.4);
 
                 // Values for inner split
                 const leftSegmentVal = w/2 + offX;
                 const rightSegmentVal = w/2 - offX;
-                doc.text(formatFraction(leftSegmentVal), (cx1 - w/2 * bpScale + postCenterDrawX) / 2, dimY_inner - 0.4, { align: "center" });
-                doc.text(formatFraction(rightSegmentVal), (postCenterDrawX + cx1 + w/2 * bpScale) / 2, dimY_inner - 0.4, { align: "center" });
+                doc.text(formatFraction(leftSegmentVal), (cx1 - w/2 * bpScale + postCenterDrawX) / 2, dimY_inner - 0.6, { align: "center" });
+                doc.text(formatFraction(rightSegmentVal), (postCenterDrawX + cx1 + w/2 * bpScale) / 2, dimY_inner - 0.6, { align: "center" });
 
                 // Outer overall width
                 doc.line(cx1 - w/2 * bpScale, dimY_outer, cx1 + w/2 * bpScale, dimY_outer);
-                doc.line(cx1 - w/2 * bpScale, dimY_outer - 0.8, cx1 - w/2 * bpScale, dimY_outer + 0.8);
-                doc.line(cx1 + w/2 * bpScale, dimY_outer - 0.8, cx1 + w/2 * bpScale, dimY_outer + 0.8);
-                doc.line(cx1 - w/2 * bpScale - 0.3, dimY_outer - 0.3, cx1 - w/2 * bpScale + 0.3, dimY_outer + 0.3);
-                doc.line(cx1 + w/2 * bpScale - 0.3, dimY_outer - 0.3, cx1 + w/2 * bpScale + 0.3, dimY_outer + 0.3);
-                doc.text(formatFraction(w), cx1, dimY_outer + 2.8, { align: "center" });
-
+                doc.line(cx1 - w/2 * bpScale, dimY_outer - 1.0, cx1 - w/2 * bpScale, dimY_outer + 1.0);
+                doc.line(cx1 + w/2 * bpScale, dimY_outer - 1.0, cx1 + w/2 * bpScale, dimY_outer + 1.0);
+                doc.line(cx1 - w/2 * bpScale - 0.4, dimY_outer - 0.4, cx1 - w/2 * bpScale + 0.4, dimY_outer + 0.4);
+                doc.line(cx1 + w/2 * bpScale - 0.4, dimY_outer - 0.4, cx1 + w/2 * bpScale + 0.4, dimY_outer + 0.4);
+                doc.text(formatFraction(w), cx1, dimY_outer + 3.2, { align: "center" });
 
                 // 2. Stacked Vertical Dimensions (Right)
-                const dimX_inner = cx1 + w/2 * bpScale + 3.0;
-                const dimX_outer = cx1 + w/2 * bpScale + 7.0;
+                const dimX_inner = cx1 + w/2 * bpScale + 4.5;
+                const dimX_outer = cx1 + w/2 * bpScale + 9.5;
                 const postCenterDrawY = cy1 - offY * bpScale;
 
                 // Inner split segments (bottom edge -> post center, post center -> top edge)
@@ -10714,27 +10720,27 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Line 2: Post center to top edge
                 doc.line(dimX_inner, postCenterDrawY, dimX_inner, cy1 - h/2 * bpScale);
                 // Extension lines for inner ticks
-                doc.line(dimX_inner - 0.8, cy1 + h/2 * bpScale, dimX_inner + 0.8, cy1 + h/2 * bpScale);
-                doc.line(dimX_inner - 0.8, postCenterDrawY, dimX_inner + 0.8, postCenterDrawY);
-                doc.line(dimX_inner - 0.8, cy1 - h/2 * bpScale, dimX_inner + 0.8, cy1 - h/2 * bpScale);
+                doc.line(dimX_inner - 1.0, cy1 + h/2 * bpScale, dimX_inner + 1.0, cy1 + h/2 * bpScale);
+                doc.line(dimX_inner - 1.0, postCenterDrawY, dimX_inner + 1.0, postCenterDrawY);
+                doc.line(dimX_inner - 1.0, cy1 - h/2 * bpScale, dimX_inner + 1.0, cy1 - h/2 * bpScale);
                 // Draw diagonal slash ticks
-                doc.line(dimX_inner - 0.3, cy1 + h/2 * bpScale - 0.3, dimX_inner + 0.3, cy1 + h/2 * bpScale + 0.3);
-                doc.line(dimX_inner - 0.3, postCenterDrawY - 0.3, dimX_inner + 0.3, postCenterDrawY + 0.3);
-                doc.line(dimX_inner - 0.3, cy1 - h/2 * bpScale - 0.3, dimX_inner + 0.3, cy1 - h/2 * bpScale + 0.3);
+                doc.line(dimX_inner - 0.4, cy1 + h/2 * bpScale - 0.4, dimX_inner + 0.4, cy1 + h/2 * bpScale + 0.4);
+                doc.line(dimX_inner - 0.4, postCenterDrawY - 0.4, dimX_inner + 0.4, postCenterDrawY + 0.4);
+                doc.line(dimX_inner - 0.4, cy1 - h/2 * bpScale - 0.4, dimX_inner + 0.4, cy1 - h/2 * bpScale + 0.4);
 
                 // Values for inner split
                 const botSegmentVal = h/2 + offY;
                 const topSegmentVal = h/2 - offY;
-                doc.text(formatFraction(botSegmentVal), dimX_inner + 1.0, (cy1 + h/2 * bpScale + postCenterDrawY) / 2 + 1.2, { align: "left" });
-                doc.text(formatFraction(topSegmentVal), dimX_inner + 1.0, (postCenterDrawY + cy1 - h/2 * bpScale) / 2 + 1.2, { align: "left" });
+                doc.text(formatFraction(botSegmentVal), dimX_inner + 1.2, (cy1 + h/2 * bpScale + postCenterDrawY) / 2 + 1.0, { align: "left" });
+                doc.text(formatFraction(topSegmentVal), dimX_inner + 1.2, (postCenterDrawY + cy1 - h/2 * bpScale) / 2 + 1.0, { align: "left" });
 
                 // Outer overall height
                 doc.line(dimX_outer, cy1 - h/2 * bpScale, dimX_outer, cy1 + h/2 * bpScale);
-                doc.line(dimX_outer - 0.8, cy1 - h/2 * bpScale, dimX_outer + 0.8, cy1 - h/2 * bpScale);
-                doc.line(dimX_outer - 0.8, cy1 + h/2 * bpScale, dimX_outer + 0.8, cy1 + h/2 * bpScale);
-                doc.line(dimX_outer - 0.3, cy1 - h/2 * bpScale - 0.3, dimX_outer + 0.3, cy1 - h/2 * bpScale + 0.3);
-                doc.line(dimX_outer - 0.3, cy1 + h/2 * bpScale - 0.3, dimX_outer + 0.3, cy1 + h/2 * bpScale + 0.3);
-                doc.text(formatFraction(h), dimX_outer + 2.8, cy1 + 1.2, { align: "center", angle: 270 });
+                doc.line(dimX_outer - 1.0, cy1 - h/2 * bpScale, dimX_outer + 1.0, cy1 - h/2 * bpScale);
+                doc.line(dimX_outer - 1.0, cy1 + h/2 * bpScale, dimX_outer + 1.0, cy1 + h/2 * bpScale);
+                doc.line(dimX_outer - 0.4, cy1 - h/2 * bpScale - 0.4, dimX_outer + 0.4, cy1 - h/2 * bpScale + 0.4);
+                doc.line(dimX_outer - 0.4, cy1 + h/2 * bpScale - 0.4, dimX_outer + 0.4, cy1 + h/2 * bpScale + 0.4);
+                doc.text(formatFraction(h), dimX_outer + 1.2, cy1 + 1.0, { align: "left" });
 
                 // Draw center projection dashed lines from post center to dimensions
                 doc.setLineWidth(0.12);
@@ -10745,7 +10751,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Horizontal center projection line (from post center Cx to dimX_inner)
                 doc.line(postCx, postCy, dimX_inner, postCy);
                 doc.setLineDashPattern([], 0);
-
 
                 // Draw corner margin dimensions in Typical details plan view
                 const margins = getBasePlateCornerMargins(bpc);
@@ -10759,14 +10764,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     const hy_center1 = cy1 - (margins.targetHole.y - margins.bounds.minY - h/2) * bpScale;
                     
                     doc.setFont('helvetica', 'normal');
-                    doc.setFontSize(3.8);
+                    doc.setFontSize(4.8);
                     doc.setLineWidth(0.10);
                     
-                    // X Margin (horizontal dimension line at plateBotY1 + 1.8)
-                    const xDimY1 = plateBotY1 + 1.8;
+                    // X Margin (horizontal dimension line at plateBotY1 + 2.0)
+                    const xDimY1 = plateBotY1 + 2.0;
                     doc.line(plateLeftX1, xDimY1, hx_center1, xDimY1);
-                    doc.line(plateLeftX1, xDimY1 - 0.4, plateLeftX1, xDimY1 + 0.4);
-                    doc.line(hx_center1, xDimY1 - 0.4, hx_center1, xDimY1 + 0.4);
+                    doc.line(plateLeftX1, xDimY1 - 0.5, plateLeftX1, xDimY1 + 0.5);
+                    doc.line(hx_center1, xDimY1 - 0.5, hx_center1, xDimY1 + 0.5);
                     doc.line(hx_center1, plateBotY1 + 0.3, hx_center1, xDimY1 + 0.3); // Extension to hole center X
                     
                     // Ticks
@@ -10775,18 +10780,18 @@ document.addEventListener('DOMContentLoaded', () => {
                     
                     doc.text(formatFraction(marginValX), (plateLeftX1 + hx_center1) / 2, xDimY1 - 0.4, { align: 'center' });
                     
-                    // Y Margin (vertical dimension line at plateLeftX1 - 1.8)
-                    const yDimX1 = plateLeftX1 - 1.8;
+                    // Y Margin (vertical dimension line at plateLeftX1 - 2.0)
+                    const yDimX1 = plateLeftX1 - 2.0;
                     doc.line(yDimX1, plateBotY1, yDimX1, hy_center1);
-                    doc.line(yDimX1 - 0.4, plateBotY1, yDimX1 + 0.4, plateBotY1);
-                    doc.line(yDimX1 - 0.4, hy_center1, yDimX1 + 0.4, hy_center1);
+                    doc.line(yDimX1 - 0.5, plateBotY1, yDimX1 + 0.5, plateBotY1);
+                    doc.line(yDimX1 - 0.5, hy_center1, yDimX1 + 0.5, hy_center1);
                     doc.line(plateLeftX1 - 0.3, hy_center1, yDimX1 - 0.3, hy_center1); // Extension to hole center Y
                     
                     // Ticks
                     doc.line(yDimX1 - 0.3, plateBotY1 - 0.3, yDimX1 + 0.3, plateBotY1 + 0.3);
                     doc.line(yDimX1 - 0.3, hy_center1 - 0.3, yDimX1 + 0.3, hy_center1 + 0.3);
                     
-                    doc.text(formatFraction(marginValY), yDimX1 - 0.5, (plateBotY1 + hy_center1) / 2 + 0.7, { align: 'right' });
+                    doc.text(formatFraction(marginValY), yDimX1 - 0.6, (plateBotY1 + hy_center1) / 2 + 0.8, { align: 'right' });
                 }
 
                 // Leader line pointing to post (up-left, completely avoiding top-left hole by starting from top face of post)
@@ -10880,14 +10885,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const postText = "HSS " + formatPostDim(bpPostW) + "x" + formatPostDim(bpPostH) + "x" + getPostGaugeSuffix(bpPostT) + " POST";
                 doc.setFont('helvetica', 'bold');
-                doc.setFontSize(3.0);
-                const postTextY = cy1 - 4.5;
-                doc.text(postText, boxX + 1.5, postTextY, { align: "left" });
+                doc.setFontSize(4.0);
+                const postTextY = cy1 - 5.5;
+                doc.text(postText, boxX + 2.0, postTextY, { align: "left" });
                 
                 const tw = doc.getTextWidth(postText);
                 const postLeaderStartX = postCx - postDrawW / 2;
                 const postLeaderStartY = postCy;
-                const postLeaderEndX = boxX + 1.5 + tw + 0.5;
+                const postLeaderEndX = boxX + 2.0 + tw + 0.5;
                 const postLeaderEndY = postTextY;
                 
                 doc.setLineWidth(0.10);
@@ -10901,13 +10906,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 const bpLeaderStartY = cy1;
                 
                 doc.setFont('helvetica', 'bold');
-                doc.setFontSize(3.8);
-                doc.text(bpMarkStr, boxX + 1.5, cy1 + 1.0, { align: "left" });
+                doc.setFontSize(4.8);
+                doc.text(bpMarkStr, boxX + 2.0, cy1 + 1.0, { align: "left" });
                 const pmw = doc.getTextWidth(bpMarkStr);
                 
-                doc.line(bpLeaderStartX, bpLeaderStartY, boxX + 1.5 + pmw + 0.5, cy1);
+                doc.line(bpLeaderStartX, bpLeaderStartY, boxX + 2.0 + pmw + 0.5, cy1);
                 
-                const bpAngle = Math.atan2(0, bpLeaderStartX - (boxX + 1.5 + pmw + 0.5));
+                const bpAngle = Math.atan2(0, bpLeaderStartX - (boxX + 2.0 + pmw + 0.5));
                 drawArrowhead(bpLeaderStartX, bpLeaderStartY, bpAngle, 0.6);
 
                 // Leader line pointing to bottom-right hole (underneath the 5" dimension line ticks)
@@ -10928,16 +10933,16 @@ document.addEventListener('DOMContentLoaded', () => {
                         ? `(${holes.length}) ${formatFraction(brHole.diameter)} x ${formatFraction(bpc.slotLength)} SLOT`
                         : `(${holes.length}) ${formatFraction(brHole.diameter)} \u00D8 HOLES`;
                     
-                    const textY = cy1 + h/2 * bpScale + 4.5;
+                    const textY = cy1 + h/2 * bpScale + 6.0;
                     doc.setFont('helvetica', 'normal');
-                    doc.setFontSize(3.3);
-                    doc.text(holeDesc, boxX + boxW - 1.5, textY, { align: "right" });
+                    doc.setFontSize(4.3);
+                    doc.text(holeDesc, boxX + boxW - 2.0, textY, { align: "right" });
                     
                     const hw = doc.getTextWidth(holeDesc);
-                    const textStartX = boxX + boxW - 1.5 - hw - 0.5;
+                    const textStartX = boxX + boxW - 2.0 - hw - 0.5;
                     
                     // Horizontal shoulder to elbow, then inclined leg UP-LEFT to bottom-right hole
-                    const elbowX = cx1 + w/2 * bpScale + 3.0;
+                    const elbowX = cx1 + w/2 * bpScale + 2.5;
                     const elbowY = textY;
                     
                     doc.line(textStartX, textY, elbowX, elbowY);
@@ -10949,19 +10954,19 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             };
             const drawWireMeshDetail = (doc, boxX, boxY, boxW, boxH, vals) => {
-                const ratioX = boxW / 110;
-                const ratioY = boxH / 45;
-                const scale = 9.5 * ratioX; // Scale down proportionally to boxW
-                const pDrawH = 22 * ratioY; // Scale down post height to boxH
-                const fontS = Math.max(2.8, 4.2 * ratioX);
-                const titleFontS = Math.max(4.0, 6.0 * ratioX);
-                const arrowSize = 0.6 * ratioX;
+                const ratioX = boxW / 58;
+                const ratioY = boxH / 50;
+                const scale = 5.2 * ratioX; // Proportional scale (enlarged)
+                const pDrawH = 26.0 * ratioY; // Scaled post height
+                const fontS = 3.8;
+                const titleFontS = 5.0;
+                const arrowSize = 0.6;
 
                 // Transparent and borderless background (no white fill rect)
 
                 const style = vals.railStyle || 'classical';
-                const cx = boxX + boxW * 0.38;
-                const cy_top = boxY + 8 * ratioY;
+                const cx = boxX + 22.0 * ratioX;
+                const cy_top = boxY + 7.5 * ratioY;
                 
                 const hasMid = (style === 'villa_balcony' || (style === 'villa_custom' && vals.midRailType !== 'none'));
                 let trH = 1.5;
@@ -10987,10 +10992,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 const pDrawW = trDrawW; // Post aligns exactly under the top runner
                 const fbY = cy_top + trDrawH;
                 
-                const fbX = postLeft + 0.24 * ratioX; // Shifted right by half line-width so it aligns perfectly inside the post boundary
+                const fbX = postLeft + 0.3 * ratioX; // Shifted right so it aligns inside the post boundary
                 const fbT = 0.125 * scale; // 1/8" flat bar thickness
-                const meshX = postLeft + 0.83 * ratioX; // Wire mesh is positioned to touch the flat bar with exactly zero gap
-                const fbDrawH = 1.0 * scale; // flat bar is a small line of 1" height attached to top runner bottom
+                const meshX = postLeft + 0.9 * ratioX; // Wire mesh touches the flat bar
+                const fbDrawH = 1.0 * scale; // flat bar height attached to top runner bottom
                 
                 const postType = vals.postType || 'hss_rect';
                 const midPostCount = (vals.midPosts === 'default' || vals.midPosts === 'yes') ? Math.max(0, Math.ceil((vals.originalLength || vals.length) / 48) - 1) : ((vals.midPosts === 'custom' || vals.midPosts === 'custom_standard') ? (parseInt(vals.midPostCount) || 0) : 0);
@@ -10999,7 +11004,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     hasPost = false; // The left side of a left return does not have a post
                 }
 
-                doc.setLineWidth(0.22 * ratioX); // Clean structural outline
+                doc.setLineWidth(0.20); // Clean structural outline
                 // Draw Top Runner
                 doc.rect(topRunnerLeft, cy_top, trDrawW, trDrawH, 'S');
                 
@@ -11013,7 +11018,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 // Draw Wire Mesh WWM 2x2x0.135
                 const wireH = pDrawH;
-                doc.setLineWidth(0.26 * ratioX); // wire thickness (kept original size)
+                doc.setLineWidth(0.24); // wire thickness
                 doc.line(meshX, fbY, meshX, fbY + wireH);
                 
                 // Horizontal wires (dots) spaced vertically
@@ -11022,17 +11027,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 const dotSpacing = wireH / (numDots + 1);
                 for (let i = 1; i <= numDots; i++) {
                     const dotY = fbY + i * dotSpacing;
-                    doc.circle(meshX, dotY, 0.35 * ratioX, 'FD');
+                    doc.circle(meshX, dotY, 0.4, 'FD');
                 }
                 
                 // Draw Flat Bar FB 1x1/8 immediately to the left of the wire mesh
-                doc.setLineWidth(0.48 * ratioX); // Thick flat bar line
+                doc.setLineWidth(0.48); // Thick flat bar line
                 doc.line(fbX, fbY, fbX, fbY + fbDrawH);
 
                 // Draw horizontal cut line at the bottom of post/flat bar
-                doc.setLineWidth(0.08 * ratioX); // Thin cut line
-                const cutLineEndX = postRight + 1.5 * ratioX;
-                doc.line(postLeft - 1.5 * ratioX, cy_top + trDrawH + pDrawH, cutLineEndX, cy_top + trDrawH + pDrawH);
+                doc.setLineWidth(0.10); // Thin cut line
+                const cutLineEndX = postRight + 2.0;
+                doc.line(postLeft - 2.0, cy_top + trDrawH + pDrawH, cutLineEndX, cy_top + trDrawH + pDrawH);
                 
                 // Draw Angled Leaders and labels
                 doc.setFont('helvetica', 'bold');
@@ -11040,105 +11045,105 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 let runnerSizeText = "";
                 if (style === 'classical' || style === 'executive' || style === 'urban_balcony' || style === 'villa_balcony') {
-                    runnerSizeText = "HSS1 1/2x1 1/2x16GA";
+                    runnerSizeText = "HSS 1 1/2x1 1/2x16GA";
                 } else {
                     if (hasMid) {
                         const rawText = vals.midRailSize === 'CUSTOM' ? `FB${vals.midRailW}x${vals.midRailH}` : formatAiscSize(vals.midRailSize);
-                        runnerSizeText = rawText.replace("HSS ", "HSS").replace("FB ", "FB");
+                        runnerSizeText = rawText.replace("HSS ", "HSS ").replace("FB ", "FB ");
                     } else {
                         const rawText = vals.topRailSize === 'CUSTOM' ? `HSS${vals.topRailW}x${vals.topRailH}` : formatAiscSize(vals.topRailSize);
-                        runnerSizeText = rawText.replace("HSS ", "HSS").replace("FB ", "FB");
+                        runnerSizeText = rawText.replace("HSS ", "HSS ").replace("FB ", "FB ");
                     }
                 }
                 runnerSizeText = formatToArchitecturalDesc(runnerSizeText);
                 
                 const rawPText = (style === 'classical' || style === 'executive' || style === 'urban_balcony' || style === 'villa_balcony') ? `HSS 1 1/2x1 1/2x11GA` : (vals.postSize === 'CUSTOM' ? `HSS ${vals.postW}x${vals.postH}` : formatAiscSize(vals.postSize));
-                const pSizeText = formatToArchitecturalDesc(rawPText.replace("HSS ", "HSS"));
+                const pSizeText = formatToArchitecturalDesc(rawPText);
                 
                 const meshGridW = vals.meshGridW !== undefined ? vals.meshGridW : 2.0;
                 const meshGridH = vals.meshGridH !== undefined ? vals.meshGridH : 2.0;
                 const meshWireD = vals.meshWireD !== undefined ? vals.meshWireD : 0.135;
                 const meshText = `WWM${meshGridW}x${meshGridH}x${meshWireD}`;
                 
-                doc.setLineWidth(0.15 * ratioX);
+                doc.setLineWidth(0.12);
                 
                 // Vertical range for label texts on the right
-                const startY = boxY + 5.0 * ratioY;
-                const endY = boxY + 22.0 * ratioY;
+                const startY = boxY + 6.0;
+                const endY = boxY + 28.0;
                 
                 // 1. Runner (Top Runner or Mid Runner)
                 const trLx1 = cx + trDrawW / 4;
                 const trLy1 = cy_top + trDrawH / 2;
-                const trLx2 = cx + trDrawW + 2 * ratioX;
+                const trLx2 = cx + trDrawW + 3.0;
                 const trLy2 = startY;
-                const trLx3 = trLx2 + 4 * ratioX;
+                const trLx3 = trLx2 + 4.0;
                 doc.line(trLx1, trLy1, trLx2, trLy2);
                 doc.line(trLx2, trLy2, trLx3, trLy2);
                 
                 const trAngle = Math.atan2(trLy2 - trLy1, trLx2 - trLx1);
                 drawArrowhead(trLx1, trLy1, trAngle, arrowSize);
                 
-                doc.text(runnerSizeText, trLx3 + 0.8 * ratioX, trLy2 - 0.5 * ratioY, { align: "left" });
-                doc.text(hasMid ? "MID RUNNER" : "TOP RUNNING", trLx3 + 0.8 * ratioX, trLy2 + 1.2 * ratioY, { align: "left" });
+                doc.text(runnerSizeText, trLx3 + 0.8, trLy2 - 0.5, { align: "left" });
+                doc.text(hasMid ? "MID RUNNER" : "TOP RUNNING", trLx3 + 0.8, trLy2 + 1.4, { align: "left" });
                 
                 if (hasPost) {
                     // 2. Post
                     const pLx1 = postRight;
                     const pTargetY = cy_top + trDrawH + pDrawH / 3;
-                    const pLx2 = cx + trDrawW + 2 * ratioX;
+                    const pLx2 = cx + trDrawW + 3.0;
                     const pLy2 = startY + (endY - startY) / 2;
-                    const pLx3 = pLx2 + 4 * ratioX;
+                    const pLx3 = pLx2 + 4.0;
                     doc.line(pLx1, pTargetY, pLx2, pLy2);
                     doc.line(pLx2, pLy2, pLx3, pLy2);
                     
                     const pAngle = Math.atan2(pLy2 - pTargetY, pLx2 - pLx1);
                     drawArrowhead(pLx1, pTargetY, pAngle, arrowSize);
                     
-                    doc.text(pSizeText, pLx3 + 0.8 * ratioX, pLy2 - 0.5 * ratioY, { align: "left" });
-                    doc.text("POST", pLx3 + 0.8 * ratioX, pLy2 + 1.2 * ratioY, { align: "left" });
+                    doc.text(pSizeText, pLx3 + 0.8, pLy2 - 0.5, { align: "left" });
+                    doc.text("POST", pLx3 + 0.8, pLy2 + 1.4, { align: "left" });
                 }
                 
                 // 3. Mesh Wire
                 const mLx1 = meshX;
                 const mTargetY = fbY + 2.5 * dotSpacing;
-                const mLx2 = cx + trDrawW + 2 * ratioX;
+                const mLx2 = cx + trDrawW + 3.0;
                 const mLy2 = endY;
-                const mLx3 = mLx2 + 4 * ratioX;
+                const mLx3 = mLx2 + 4.0;
                 doc.line(mLx1, mTargetY, mLx2, mLy2);
                 doc.line(mLx2, mLy2, mLx3, mLy2);
                 
                 const mAngle = Math.atan2(mLy2 - mTargetY, mLx2 - mLx1);
                 drawArrowhead(mLx1, mTargetY, mAngle, arrowSize);
                 
-                doc.text(meshText, mLx3 + 0.8 * ratioX, mLy2 - 0.5 * ratioY, { align: "left" });
-                doc.text("WIRE MESH", mLx3 + 0.8 * ratioX, mLy2 + 1.2 * ratioY, { align: "left" });
+                doc.text(meshText, mLx3 + 0.8, mLy2 - 0.5, { align: "left" });
+                doc.text("WIRE MESH", mLx3 + 0.8, mLy2 + 1.4, { align: "left" });
                 
                 // 4. Flat Bar (horizontal leader line on the left side)
                 const fLx1 = fbX;
                 const fLy1 = fbY + fbDrawH / 2;
-                const fLx2 = fbX - 10 * ratioX;
+                const fLx2 = fbX - 6.0;
                 const fLy2 = fLy1;
-                const fLx3 = fLx2 - 4 * ratioX;
+                const fLx3 = fLx2 - 3.0;
                 doc.line(fLx1, fLy1, fLx2, fLy2);
                 doc.line(fLx2, fLy2, fLx3, fLy2);
                 
                 const fAngle = Math.atan2(fLy2 - fLy1, fLx2 - fLx1);
                 drawArrowhead(fLx1, fLy1, fAngle, arrowSize);
                 
-                doc.text("FB1x1/8", fLx3 - 1 * ratioX, fLy2 + 1.0 * ratioY, { align: "right" });
+                doc.text("FB1x1/8", fLx3 - 0.8, fLy2 + 0.9, { align: "right" });
                 
-                // Bottom Title SECTION A (underlined)
+                // Bottom Title DETAIL A / SECTION A (underlined)
                 doc.setFont('helvetica', 'bold');
                 doc.setFontSize(titleFontS);
                 const titleText = hasMid ? "DETAIL A" : "SECTION A";
                 const titleX = boxX + boxW / 2;
-                const titleY = boxY + boxH - 4.5 * ratioY;
+                const titleY = boxY + boxH - 3.5;
                 doc.text(titleText, titleX, titleY, { align: "center" });
                 
                 // Underline
                 const textWidth = doc.getTextWidth(titleText);
-                doc.setLineWidth(0.35 * ratioX); // Bolder underline
-                doc.line(titleX - textWidth / 2, titleY + 0.5 * ratioY, titleX + textWidth / 2, titleY + 0.5 * ratioY);
+                doc.setLineWidth(0.2); // underline
+                doc.line(titleX - textWidth / 2, titleY + 0.6, titleX + textWidth / 2, titleY + 0.6);
             };
 
             const drawExtraFlatBarDetail = (doc, boxX, boxY, boxW, boxH, vals) => {
@@ -11229,8 +11234,8 @@ document.addEventListener('DOMContentLoaded', () => {
             topDetails.forEach((detail, index) => {
                 const boxX = 8;
                 const boxY = 8;
-                const boxW = 52;
-                const boxH = 48;
+                const boxW = 66;
+                const boxH = 62;
                 
                 if (detail === 'base_plate') {
                     drawBasePlateDetail(doc, boxX, boxY, boxW, boxH, vals);
@@ -11393,7 +11398,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const activeText = spec.text !== undefined && spec.text !== null ? spec.text : (dim.text || formatFraction(distInches));
 
                 doc.setFont('helvetica', 'normal');
-                doc.setFontSize(4.4 * (activeFontSize / 12.0));
+                doc.setFontSize(8.5 * (activeFontSize / 12.0));
                 doc.setTextColor(0, 0, 0);
                 
                 let textAngle = -arrowAngle * 180 / Math.PI;
@@ -11538,7 +11543,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const activeText = spec.text !== undefined && spec.text !== null ? spec.text : text;
 
                 doc.setFont('helvetica', 'normal');
-                doc.setFontSize(4.4 * (activeFontSize / 12.0));
+                doc.setFontSize(8.5 * (activeFontSize / 12.0));
                 doc.setTextColor(0, 0, 0);
                 
                 let textAngle = -arrowAngle * 180 / Math.PI;
@@ -11679,7 +11684,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const activeText = spec.text !== undefined && spec.text !== null ? spec.text : text;
 
                 doc.setFont('helvetica', 'normal');
-                doc.setFontSize(4.2 * (activeFontSize / 11.0));
+                doc.setFontSize(8.5 * (activeFontSize / 11.0));
                 doc.setTextColor(0, 0, 0);
                 
                 let cleanedText = activeText || "";
@@ -11806,7 +11811,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const activeText = spec.text !== undefined && spec.text !== null ? spec.text : text;
 
                 doc.setFont('helvetica', 'normal');
-                doc.setFontSize(4.2 * (activeFontSize / 11.0));
+                doc.setFontSize(8.5 * (activeFontSize / 11.0));
                 doc.setTextColor(0, 0, 0);
 
                 let cleanedText = activeText || "";
@@ -13339,10 +13344,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             // --- A. DRAW BOM BOX ---
-            const bomX = 333.8, bomY = 7, bomW = 91;
+            const bomW = 147;
+            const bomX = 424.8 - bomW; // 277.8
+            const bomY = 7;
             
-            // Column widths: Qty (6), Mark (12), Desc (24), Len (10), Steel (9), Finish (9), Remark (14), Weight (7)
-            const colW = [6, 12, 24, 10, 9, 9, 14, 7];
+            // Column widths: Qty (11), Mark (15), Desc (34), Len (17), Steel (13), Finish (16), Remark (28), Weight (13)
+            const colW = [11, 15, 34, 17, 13, 16, 28, 13];
             const colX = [];
             let tempX = bomX;
             for (let i = 0; i < colW.length; i++) {
@@ -13352,55 +13359,56 @@ document.addEventListener('DOMContentLoaded', () => {
             colX.push(tempX); // 424.8
             
             // Header Row (BILL OF MATERIAL)
-            doc.rect(bomX, bomY, bomW, 6, 'S');
+            doc.rect(bomX, bomY, bomW, 7.0, 'S');
             doc.setFont('helvetica', 'normal');
-            doc.setFontSize(8.0);
-            doc.text("BILL OF MATERIAL", bomX + bomW / 2, bomY + 4.2, { align: "center" });
+            doc.setFontSize(9.0);
+            doc.text("BILL OF MATERIAL", bomX + bomW / 2, bomY + 4.6, { align: "center" });
             
             // Underline for BILL OF MATERIAL
             const textW = doc.getTextWidth("BILL OF MATERIAL");
             doc.setLineWidth(0.2);
-            doc.line(bomX + bomW / 2 - textW / 2, bomY + 4.8, bomX + bomW / 2 + textW / 2, bomY + 4.8);
+            doc.line(bomX + bomW / 2 - textW / 2, bomY + 5.3, bomX + bomW / 2 + textW / 2, bomY + 5.3);
             doc.setLineWidth(0.1);
             
-            const subY = bomY + 6;
-            doc.rect(bomX, subY, bomW, 5, 'S');
-            doc.setFontSize(4.5);
+            const subY = bomY + 7.0;
+            doc.rect(bomX, subY, bomW, 7.0, 'S');
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(7.5);
             
             // Column Headers
-            doc.text("QTY", colX[0] + colW[0] / 2, subY + 2.0, { align: "center" });
-            doc.text("TOTAL", colX[0] + colW[0] / 2, subY + 4.0, { align: "center" });
+            doc.text("QTY", colX[0] + colW[0] / 2, subY + 2.8, { align: "center" });
+            doc.text("TOTAL", colX[0] + colW[0] / 2, subY + 5.8, { align: "center" });
             
-            doc.text("PIECE", colX[1] + colW[1] / 2, subY + 2.0, { align: "center" });
-            doc.text("MARK", colX[1] + colW[1] / 2, subY + 4.0, { align: "center" });
+            doc.text("PIECE", colX[1] + colW[1] / 2, subY + 2.8, { align: "center" });
+            doc.text("MARK", colX[1] + colW[1] / 2, subY + 5.8, { align: "center" });
             
-            doc.text("DESCRIPTION", colX[2] + colW[2] / 2, subY + 3.2, { align: "center" });
-            doc.text("LENGTH", colX[3] + colW[3] / 2, subY + 3.2, { align: "center" });
+            doc.text("DESCRIPTION", colX[2] + colW[2] / 2, subY + 4.3, { align: "center" });
+            doc.text("LENGTH", colX[3] + colW[3] / 2, subY + 4.3, { align: "center" });
             
-            doc.text("STEEL", colX[4] + colW[4] / 2, subY + 2.0, { align: "center" });
-            doc.text("GRADE", colX[4] + colW[4] / 2, subY + 4.0, { align: "center" });
+            doc.text("STEEL", colX[4] + colW[4] / 2, subY + 2.8, { align: "center" });
+            doc.text("GRADE", colX[4] + colW[4] / 2, subY + 5.8, { align: "center" });
             
-            doc.text("SURFACE", colX[5] + colW[5] / 2, subY + 2.0, { align: "center" });
-            doc.text("FINISH", colX[5] + colW[5] / 2, subY + 4.0, { align: "center" });
+            doc.text("SURFACE", colX[5] + colW[5] / 2, subY + 2.8, { align: "center" });
+            doc.text("FINISH", colX[5] + colW[5] / 2, subY + 5.8, { align: "center" });
             
-            doc.text("REMARKS", colX[6] + colW[6] / 2, subY + 3.2, { align: "center" });
+            doc.text("REMARKS", colX[6] + colW[6] / 2, subY + 4.3, { align: "center" });
             
-            doc.text("WEIGHT", colX[7] + colW[7] / 2, subY + 2.0, { align: "center" });
-            doc.text("TOTAL", colX[7] + colW[7] / 2, subY + 4.0, { align: "center" });
+            doc.text("WEIGHT", colX[7] + colW[7] / 2, subY + 2.8, { align: "center" });
+            doc.text("TOTAL", colX[7] + colW[7] / 2, subY + 5.8, { align: "center" });
             
             // Column Header Dividers
-            doc.line(colX[1], subY, colX[1], subY + 5);
-            doc.line(colX[2], subY, colX[2], subY + 5);
-            doc.line(colX[3], subY, colX[3], subY + 5);
-            doc.line(colX[4], subY, colX[4], subY + 5);
-            doc.line(colX[5], subY, colX[5], subY + 5);
-            doc.line(colX[6], subY, colX[6], subY + 5);
-            doc.line(colX[7], subY, colX[7], subY + 5);
+            doc.line(colX[1], subY, colX[1], subY + 7.0);
+            doc.line(colX[2], subY, colX[2], subY + 7.0);
+            doc.line(colX[3], subY, colX[3], subY + 7.0);
+            doc.line(colX[4], subY, colX[4], subY + 7.0);
+            doc.line(colX[5], subY, colX[5], subY + 7.0);
+            doc.line(colX[6], subY, colX[6], subY + 7.0);
+            doc.line(colX[7], subY, colX[7], subY + 7.0);
             
             // Draw Rows
-            let currentY = subY + 5;
+            let currentY = subY + 7.0;
             doc.setFont('helvetica', 'normal');
-            doc.setFontSize(5.5);
+            doc.setFontSize(7.8);
             
             const getSteelGrade = (shapeName) => {
                 const s = (shapeName || '').toLowerCase();
@@ -13420,11 +13428,11 @@ document.addEventListener('DOMContentLoaded', () => {
             
             const drawCellText = (text, startX, cellWidth, alignment = "left", isBold = false) => {
                 doc.setFont('helvetica', isBold ? 'bold' : 'normal');
-                let currentSize = 4.8;
+                let currentSize = 7.8;
                 doc.setFontSize(currentSize);
                 let textW = doc.getTextWidth(text);
-                const maxW = cellWidth - 1.6; // 1.6mm padding total
-                while (textW > maxW && currentSize > 2.5) {
+                const maxW = cellWidth - 1.2; // 0.6mm padding each side
+                while (textW > maxW && currentSize > 3.0) {
                     currentSize -= 0.1;
                     doc.setFontSize(currentSize);
                     textW = doc.getTextWidth(text);
@@ -13434,23 +13442,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (alignment === "center") {
                     x = startX + cellWidth / 2;
                 } else if (alignment === "left") {
-                    x = startX + 1.0; // 1.0mm left padding
+                    x = startX + 0.8; // 0.8mm left padding
                 } else if (alignment === "right") {
-                    x = startX + cellWidth - 1.0; // 1.0mm right padding
+                    x = startX + cellWidth - 0.8; // 0.8mm right padding
                 }
                 
-                doc.text(text, x, currentY + 3.1, { align: alignment });
-                doc.setFontSize(4.8); // restore default
+                doc.text(text, x, currentY + 3.8, { align: alignment });
+                doc.setFontSize(7.8); // restore default
                 doc.setFont('helvetica', 'normal');
             };
 
             const drawRow = (item) => {
-                doc.rect(bomX, currentY, bomW, 4.5, 'S');
+                doc.rect(bomX, currentY, bomW, 5.5, 'S');
                 
                 // Qty
                 drawCellText(item.qty.toString(), colX[0], colW[0], "center");
                 // Piece Mark
-                drawCellText(item.mark, colX[1], colW[1], "center", true);
+                drawCellText(item.mark, colX[1], colW[1], "center", false);
                 
                 // Description (raw size only, e.g. HSS 2x2x1/8)
                 const dText = formatToArchitecturalDesc(item.desc || "");
@@ -13473,15 +13481,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 drawCellText(item.weight.toFixed(1), colX[7], colW[7], "center");
                 
                 // Column Dividers
-                doc.line(colX[1], currentY, colX[1], currentY + 4.5);
-                doc.line(colX[2], currentY, colX[2], currentY + 4.5);
-                doc.line(colX[3], currentY, colX[3], currentY + 4.5);
-                doc.line(colX[4], currentY, colX[4], currentY + 4.5);
-                doc.line(colX[5], currentY, colX[5], currentY + 4.5);
-                doc.line(colX[6], currentY, colX[6], currentY + 4.5);
-                doc.line(colX[7], currentY, colX[7], currentY + 4.5);
+                doc.line(colX[1], currentY, colX[1], currentY + 5.5);
+                doc.line(colX[2], currentY, colX[2], currentY + 5.5);
+                doc.line(colX[3], currentY, colX[3], currentY + 5.5);
+                doc.line(colX[4], currentY, colX[4], currentY + 5.5);
+                doc.line(colX[5], currentY, colX[5], currentY + 5.5);
+                doc.line(colX[6], currentY, colX[6], currentY + 5.5);
+                doc.line(colX[7], currentY, colX[7], currentY + 5.5);
                 
-                currentY += 4.5;
+                currentY += 5.5;
             };
 
             // Draw Straight Items
@@ -13493,11 +13501,11 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Draw Bent Items Divider & Items
             if (bentItems.length > 0 && currentY < 240) {
-                doc.rect(bomX, currentY, bomW, 4.5, 'S');
+                doc.rect(bomX, currentY, bomW, 5.5, 'S');
                 doc.setFont('helvetica', 'normal');
-                doc.setFontSize(4.8);
-                doc.text("BENT ITEMS (FABRICATED)", bomX + bomW / 2, currentY + 3.1, { align: "center" });
-                currentY += 4.5;
+                doc.setFontSize(7.8);
+                doc.text("BENT ITEMS (FABRICATED)", bomX + bomW / 2, currentY + 3.8, { align: "center" });
+                currentY += 5.5;
                 
                 bentItems.forEach(item => {
                     if (currentY < 240) drawRow(item);
@@ -13522,11 +13530,11 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             if (bottomDetails.length > 0) {
-                const boxH = 42;
+                const boxH = 50;
                 
                 // Determine whether to place details on the left margin or right margin
                 // based on where there is more empty horizontal space relative to the main drawing.
-                const leftSpace = pdfX - 9;
+                const leftSpace = pdfX - 8;
                 const rightSpace = 332 - (pdfX + drawW);
                 const isReturn = (activePanelType === 'leftReturn' || activePanelType === 'rightReturn');
                 const placeOnLeft = true; // Always place Section A / mesh details on the left margin
@@ -13535,10 +13543,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     let boxX, boxY, boxW;
                     const basePlatePresent = (vals.includeBasePlates === 'yes');
                     if (bottomDetails.length === 1) {
-                        boxW = 48;
+                        boxW = 58;
                         if (placeOnLeft) {
-                            boxX = 9;
-                            boxY = basePlatePresent ? 60 : 10;
+                            boxX = 8;
+                            boxY = basePlatePresent ? 74 : 8;
                         } else {
                             boxX = Math.min(420 - boxW, pdfX + drawW + 8);
                             boxY = 131; // Bottom-right below the BOM box
@@ -13546,8 +13554,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     } else {
                         boxW = 38;
                         if (placeOnLeft) {
-                            boxX = index === 0 ? 9 : 9 + boxW + 4;
-                            boxY = basePlatePresent ? 60 : 10;
+                            boxX = index === 0 ? 8 : 8 + boxW + 4;
+                            boxY = basePlatePresent ? 74 : 8;
                         } else {
                             boxW = 38;
                             boxX = index === 0 ? Math.min(420 - 2 * boxW - 4, pdfX + drawW + 8) : Math.min(420 - boxW, pdfX + drawW + boxW + 12);
@@ -13805,15 +13813,18 @@ document.addEventListener('DOMContentLoaded', () => {
             doc.line(328, blockY + 21.0, 383, blockY + 21.0);
             
             doc.setFont('helvetica', 'bold');
-            doc.setFontSize(5.5);
+            doc.setFontSize(7.5);
             doc.text("JOB NUMBER:", 330.5, blockY + 4.5);
+            doc.setFontSize(5.5);
             doc.text("DRAWN BY:", 330.5, blockY + 11.5);
             doc.text("CHECKED BY:", 330.5, blockY + 18.5);
             doc.text("DATE:", 330.5, blockY + 25.5);
             
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(8.5);
+            doc.text(jobNo.toUpperCase(), 356.5, blockY + 4.5);
             doc.setFont('helvetica', 'normal');
             doc.setFontSize(6.5);
-            doc.text(jobNo.toUpperCase(), 356.5, blockY + 4.5);
             doc.text(drawnBy.toUpperCase(), 356.5, blockY + 11.5);
             doc.text(checkedBy.toUpperCase(), 356.5, blockY + 18.5);
             doc.text(today, 356.5, blockY + 25.5);
@@ -20179,6 +20190,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.balconyWizardState = balconyWizardState;
     window.loadActivePanelToInputs = loadActivePanelToInputs;
     window.openExportModal = openExportModal;
+    window.generateBlueprintPDF = generateBlueprintPDF;
 });
 
 
