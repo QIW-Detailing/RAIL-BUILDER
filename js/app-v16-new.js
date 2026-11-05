@@ -14983,7 +14983,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const spanW = clearWidth / (midPostCount + 1);
 
                 const panelType = (activePanelType && activePanelType !== 'main') ? activePanelType : (balconyWizardState.activePanelType || 'main');
-                const isLoosePostSheet = isLoosePost || (panelType && panelType.startsWith('loose'));
+                const isLoosePostSheet = (panelType && panelType.startsWith('loose'));
                 const hasLeft = (vals.leftPost === 'yes');
                 const hasRight = (vals.rightPost === 'yes');
 
@@ -15010,7 +15010,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (isLoosePostSheet) {
                     const activeType = (activePanelType && activePanelType.startsWith('loose')) ? activePanelType : (balconyWizardState.activePanelType || 'loosePost');
                     const chkInp = document.getElementById('inp-loose-post-include-bp');
-                    const incBPVal = (!isZipBatch && chkInp) ? (chkInp.checked ? 'yes' : 'no') : (vals[activeType + '_includeBasePlates'] ?? vals.looseIncludeBasePlates ?? 'no');
+                    const incBPVal = chkInp ? (chkInp.checked ? 'yes' : 'no') : (vals[activeType + '_includeBasePlates'] ?? vals.looseIncludeBasePlates ?? 'no');
                     vals.includeBasePlates = incBPVal;
                     vals.looseIncludeBasePlates = incBPVal;
                     vals[activeType + '_includeBasePlates'] = incBPVal;
