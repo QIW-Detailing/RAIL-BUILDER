@@ -4981,7 +4981,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const extraLen = mainPanel[activeType + '_extraLen'] ?? mainPanel.looseExtraLen ?? (parseFloat(document.getElementById('inp-loose-post-extra-len')?.value) || 0);
             const offsetX = getLoosePostOffsetX(mainPanel, activeType);
             const offsetY = getLoosePostOffsetY(mainPanel, activeType);
-            const looseIncBP = mainPanel[activeType + '_includeBasePlates'] ?? mainPanel.looseIncludeBasePlates ?? props?.includeBasePlates ?? 'yes';
+            const looseIncBP = mainPanel[activeType + '_includeBasePlates'] ?? mainPanel.looseIncludeBasePlates ?? 'no';
 
             flatModel = props ? CadEngine.createLoosePostModel(
                 props.postW, props.pHeight, props.topRailH, props.postType, props.postT, 
@@ -5196,7 +5196,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const extraLen = mainPanel[activeType + '_extraLen'] ?? mainPanel.looseExtraLen ?? (parseFloat(document.getElementById('inp-loose-post-extra-len')?.value) || 0);
                     const offsetX = getLoosePostOffsetX(mainPanel, activeType);
                     const offsetY = getLoosePostOffsetY(mainPanel, activeType);
-                    const looseIncBP = mainPanel[activeType + '_includeBasePlates'] ?? mainPanel.looseIncludeBasePlates ?? props?.includeBasePlates ?? 'yes';
+                    const looseIncBP = mainPanel[activeType + '_includeBasePlates'] ?? mainPanel.looseIncludeBasePlates ?? 'no';
 
                     currentModel = props ? CadEngine.createLoosePostModel(
                         props.postW, props.pHeight, props.topRailH, props.postType, props.postT, 
@@ -5839,7 +5839,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     ? vals[activeType + '_includeBasePlates']
                     : (vals.looseIncludeBasePlates !== undefined
                         ? vals.looseIncludeBasePlates
-                        : (props ? props.includeBasePlates : 'yes'));
+                        : (vals.looseIncludeBasePlates ?? 'no'));
                 const isMeshStyle = (style === 'urban_balcony' || style === 'villa_balcony' || style === 'urban_custom' || style === 'villa_custom');
                 
                 // 1. Loose Post (aDrawingNo)
@@ -6232,7 +6232,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return "panel_" + JSON.stringify(normalized);
         };
 
-        const getLoosePostSignature = (panel, style, setIdx) => {
+        const getLoosePostSignature = (panel, style, setIdx, looseType = 'loosePost') => {
             const resolved = getResolvedPanelProperties(panel, style);
             if (!resolved) return "";
             let pType = resolved.postType;
@@ -6245,6 +6245,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 pH = 1.5;
                 pT = 0.1196;
             }
+            const looseIncBP = panel[looseType + '_includeBasePlates'] ?? panel.looseIncludeBasePlates ?? 'no';
             const looseProps = {
                 style: style, // Add style here to prevent combining loose posts of different styles
                 pHeight: resolved.pHeight,
@@ -6253,7 +6254,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 postH: pH,
                 postT: pT,
                 topRailH: resolved.topRailH,
-                includeBasePlates: resolved.includeBasePlates,
+                includeBasePlates: looseIncBP,
                 bpW: resolved.bpW,
                 bpL: resolved.bpL,
                 bpH: resolved.bpH,
@@ -6359,7 +6360,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             originalDrawingNo: baseDwg + ".1L",
                             originalMainMark: baseDwg + "LP",
                             quantity: finalLeftQty * setQty,
-                            signature: getLoosePostSignature(set.main, style, setIdx) + "_L",
+                            signature: getLoosePostSignature(set.main, style, setIdx, 'looseLeftPost') + "_L",
                             sheetName: `Loose Corner Post (Left)`
                         });
                     }
@@ -6372,7 +6373,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             originalDrawingNo: baseDwg + ".1R",
                             originalMainMark: baseDwg + "RP",
                             quantity: finalRightQty * setQty,
-                            signature: getLoosePostSignature(set.main, style, setIdx) + "_R",
+                            signature: getLoosePostSignature(set.main, style, setIdx, 'looseRightPost') + "_R",
                             sheetName: `Loose Corner Post (Right)`
                         });
                     }
@@ -6386,7 +6387,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             originalDrawingNo: baseDwg + ".1",
                             originalMainMark: baseDwg + "P1",
                             quantity: finalLooseQty * setQty,
-                            signature: getLoosePostSignature(set.main, style, setIdx),
+                            signature: getLoosePostSignature(set.main, style, setIdx, 'loosePost'),
                             sheetName: `Loose Corner Post`
                         });
                     }
@@ -6698,7 +6699,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return "panel_" + JSON.stringify(normalized);
         };
 
-        const getLoosePostSignature = (panel, style, setIdx) => {
+        const getLoosePostSignature = (panel, style, setIdx, looseType = 'loosePost') => {
             const resolved = getResolvedPanelProperties(panel, style);
             if (!resolved) return "";
             let pType = resolved.postType;
@@ -6711,6 +6712,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 pH = 1.5;
                 pT = 0.1196;
             }
+            const looseIncBP = panel[looseType + '_includeBasePlates'] ?? panel.looseIncludeBasePlates ?? 'no';
             const looseProps = {
                 style: style, // Add style here to prevent combining loose posts of different styles
                 pHeight: resolved.pHeight,
@@ -6719,7 +6721,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 postH: pH,
                 postT: pT,
                 topRailH: resolved.topRailH,
-                includeBasePlates: resolved.includeBasePlates,
+                includeBasePlates: looseIncBP,
                 bpW: resolved.bpW,
                 bpL: resolved.bpL,
                 bpH: resolved.bpH,
@@ -6825,7 +6827,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             originalDrawingNo: baseDwg + ".1L",
                             originalMainMark: baseDwg + "LP",
                             quantity: finalLeftQty * setQty,
-                            signature: getLoosePostSignature(set.main, style, setIdx) + "_L"
+                            signature: getLoosePostSignature(set.main, style, setIdx, 'looseLeftPost') + "_L"
                         });
                     }
                     if (looseRightQty > 0 || finalRightQty > 0) {
@@ -6837,7 +6839,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             originalDrawingNo: baseDwg + ".1R",
                             originalMainMark: baseDwg + "RP",
                             quantity: finalRightQty * setQty,
-                            signature: getLoosePostSignature(set.main, style, setIdx) + "_R"
+                            signature: getLoosePostSignature(set.main, style, setIdx, 'looseRightPost') + "_R"
                         });
                     }
                 } else {
@@ -6943,7 +6945,7 @@ document.addEventListener('DOMContentLoaded', () => {
         for (const p of uniqueMasterItems) {
             if ((p.panelType && p.panelType.startsWith('loose'))) {
                 balconyWizardState.activeSetIdx = p.setIdx;
-                balconyWizardState.activePanelType = 'main'; // loose post uses main inputs
+                balconyWizardState.activePanelType = p.panelType;
                 loadActivePanelToInputs();
 
                 const resolved = getResolvedPanelProperties(p.panelData, p.panelData.railStyle || 'classical');
@@ -6958,14 +6960,17 @@ document.addEventListener('DOMContentLoaded', () => {
                     ? p.panelData[currentLooseType + '_includeBasePlates']
                     : (p.panelData.looseIncludeBasePlates !== undefined
                         ? p.panelData.looseIncludeBasePlates
-                        : resolved.includeBasePlates);
+                        : 'no');
                 currentModel = CadEngine.createLoosePostModel(
                     resolved.postW, resolved.pHeight, resolved.topRailH, resolved.postType, resolved.postT,
                     looseIncBP, resolved.bpW, resolved.bpL, resolved.bpH,
                     resolved.bpHoleD, resolved.bpHoleOffsetX, resolved.bpHoleOffsetY,
                     p.panelData.railStyle || 'classical', resolved.fHeight, resolved.botRailH, resolved.midRailType, resolved.midRailGap, resolved.midRailH,
                     (p.panelType === 'looseRightPost' ? 'right' : 'left'),
-                    0, 0, 0, resolved.basePlateConfig
+                    (parseFloat(p.panelData[currentLooseType + '_extraLen']) || parseFloat(p.panelData.looseExtraLen) || 0),
+                    getLoosePostOffsetX(p.panelData, currentLooseType),
+                    getLoosePostOffsetY(p.panelData, currentLooseType),
+                    resolved.basePlateConfig
                 );
 
                 // Render manually to svgContainer
@@ -7414,7 +7419,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (activePanelType && activePanelType.startsWith('loose')) {
                         const currentLooseType = activePanelType;
                         const chkInp = document.getElementById('inp-loose-post-include-bp');
-                        const incBPVal = chkInp ? (chkInp.checked ? 'yes' : 'no') : (activeSet.main[currentLooseType + '_includeBasePlates'] ?? activeSet.main.looseIncludeBasePlates ?? 'yes');
+                        const incBPVal = (!isZipBatch && chkInp) ? (chkInp.checked ? 'yes' : 'no') : (activeSet.main[currentLooseType + '_includeBasePlates'] ?? activeSet.main.looseIncludeBasePlates ?? 'no');
                         vals.includeBasePlates = incBPVal;
                         vals.looseIncludeBasePlates = incBPVal;
                         vals[currentLooseType + '_includeBasePlates'] = incBPVal;
@@ -9109,7 +9114,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     ? vals[currentLooseType + '_includeBasePlates']
                     : (vals.looseIncludeBasePlates !== undefined
                         ? vals.looseIncludeBasePlates
-                        : (props ? props.includeBasePlates : 'yes'));
+                        : 'no');
                 const bpW = props ? props.bpW : 6.0;
                 const bpH = props ? props.bpH : 0.5;
 
@@ -10301,7 +10306,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 const looseOffX = getLoosePostOffsetX(vals, activePanelType);
                 let pHeight = (props ? props.pHeight : 45.75) + extraLen;
                 let postW = props ? props.postW : 1.5;
-                let includeBasePlates = props ? props.includeBasePlates : 'no';
+                const currentLooseType = (activePanelType && activePanelType.startsWith('loose')) ? activePanelType : 'loosePost';
+                let includeBasePlates = (vals[currentLooseType + '_includeBasePlates'] !== undefined)
+                    ? vals[currentLooseType + '_includeBasePlates']
+                    : (vals.looseIncludeBasePlates !== undefined
+                        ? vals.looseIncludeBasePlates
+                        : 'no');
                 let bpH = props ? props.bpH : 0.5;
                 let bpW = props ? props.bpW : 6.0;
 
@@ -12450,7 +12460,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (isLoosePost) {
                     const style = vals.railStyle || 'classical';
                     const props = getResolvedPanelProperties(vals, style);
-                    const includeBasePlates = props ? props.includeBasePlates : 'no';
+                    const currentLooseType = (activePanelType && activePanelType.startsWith('loose')) ? activePanelType : 'loosePost';
+                    const includeBasePlates = (vals[currentLooseType + '_includeBasePlates'] !== undefined)
+                        ? vals[currentLooseType + '_includeBasePlates']
+                        : (vals.looseIncludeBasePlates !== undefined
+                            ? vals.looseIncludeBasePlates
+                            : 'no');
                     const activeType = balconyWizardState.activePanelType || 'loosePost';
                     const extraLen = parseFloat(vals[activeType + '_extraLen']) || parseFloat(vals.looseExtraLen) || parseFloat(document.getElementById('inp-loose-post-extra-len')?.value) || 0;
                     const isMeshStyle = (style === 'urban_balcony' || style === 'villa_balcony' || style === 'urban_custom' || style === 'villa_custom');
@@ -14967,8 +14982,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 const clearWidth = endXBound - startXBound - midPostCount * postW;
                 const spanW = clearWidth / (midPostCount + 1);
 
-                const panelType = balconyWizardState.activePanelType || 'main';
-                const isLoosePost = ((panelType && panelType.startsWith('loose')));
+                const panelType = (activePanelType && activePanelType !== 'main') ? activePanelType : (balconyWizardState.activePanelType || 'main');
+                const isLoosePostSheet = isLoosePost || (panelType && panelType.startsWith('loose'));
                 const hasLeft = (vals.leftPost === 'yes');
                 const hasRight = (vals.rightPost === 'yes');
 
@@ -14988,14 +15003,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 const isMeshStyle = (style === 'urban_balcony' || style === 'villa_balcony' || style === 'urban_custom' || style === 'villa_custom');
                 const meshFbMark = getMark(isMeshStyle);
                 const meshPanelMark = getMark(isMeshStyle);
-                const bpMark = getMark(vals.includeBasePlates === 'yes');
+                const bpMark = getMark(vals.includeBasePlates === 'yes' && !isLoosePostSheet);
 
                 const railSpans = resolveRailMarksAndSpans(vals, drawingNo, cat, style, postW);
 
-                if (isLoosePost) {
-                    const activeType = balconyWizardState.activePanelType || 'loosePost';
+                if (isLoosePostSheet) {
+                    const activeType = (activePanelType && activePanelType.startsWith('loose')) ? activePanelType : (balconyWizardState.activePanelType || 'loosePost');
                     const chkInp = document.getElementById('inp-loose-post-include-bp');
-                    const incBPVal = chkInp ? (chkInp.checked ? 'yes' : 'no') : (vals[activeType + '_includeBasePlates'] ?? vals.looseIncludeBasePlates ?? vals.includeBasePlates ?? 'yes');
+                    const incBPVal = (!isZipBatch && chkInp) ? (chkInp.checked ? 'yes' : 'no') : (vals[activeType + '_includeBasePlates'] ?? vals.looseIncludeBasePlates ?? 'no');
                     vals.includeBasePlates = incBPVal;
                     vals.looseIncludeBasePlates = incBPVal;
                     vals[activeType + '_includeBasePlates'] = incBPVal;
@@ -19925,7 +19940,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const offsetY = getLoosePostOffsetY(mainPanel, currentType);
         const defaultQty = calculateScenarioADefaultQty(mainPanel, activeSet, currentType, isMeshStyle);
         const qty = mainPanel[currentType + '_qty'] ?? mainPanel.looseQty ?? defaultQty;
-        const includeBP = mainPanel[currentType + '_includeBasePlates'] ?? mainPanel.looseIncludeBasePlates ?? mainPanel.includeBasePlates ?? 'yes';
+        const includeBP = mainPanel[currentType + '_includeBasePlates'] ?? mainPanel.looseIncludeBasePlates ?? 'no';
 
         let html = `
             <div style="padding: 14px; background: rgba(255,255,255,0.03); border-radius: 8px; border: 1px solid var(--border-color); margin-bottom: 15px;">
